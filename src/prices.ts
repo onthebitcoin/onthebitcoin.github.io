@@ -2,6 +2,8 @@
 // (no API key, generous free rate limit). Used to estimate portfolio USD
 // value from on-chain balances — best-effort only, never blocks balance
 // display if it fails.
+import { fetchWithRetry, HttpError } from './net'
+
 const COINGECKO_API = 'https://api.coingecko.com/api/v3/simple/price'
 
 export interface TokenPrices {
@@ -10,9 +12,20 @@ export interface TokenPrices {
 }
 
 export async function fetchTokenPrices(): Promise<TokenPrices> {
-  const res = await fetch(`${COINGECKO_API}?ids=ethereum,usd-coin&vs_currencies=usd`)
+  // Short timeout: prices are a nice-to-have overlay on top of balances
+  // that already loaded, so don't make the user wait long for them.
+  const res = await fetchWithRetry(
+    `${COINGECKO_API}?ids=ethereum,usd-coin&vs_currencies=usd`,
+    {},
+    { timeoutMs: 6_000, retries: 1 },
+  )
   if (!res.ok) {
-    throw new Error(`CoinGecko request failed: ${res.status}`)
+    throw new HttpError(
+      res.status,
+      res.status === 429
+        ? 'Rate limited by CoinGecko — prices will retry shortly.'
+        : `CoinGecko request failed (HTTP ${res.status}).`,
+    )
   }
   const data: { ethereum?: { usd?: number }; 'usd-coin'?: { usd?: number } } =
     await res.json()

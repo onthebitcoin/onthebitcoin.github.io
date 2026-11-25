@@ -15,7 +15,7 @@ import { TOKENS_BY_CHAIN } from './tokens'
 import { fetchTokenPrices, formatUsd, priceForSymbol, type TokenPrices } from './prices'
 import { useViewingAddress } from './viewingAddress'
 import { downloadCsv } from './csv'
-import { Skeleton } from './ui'
+import { Skeleton, useSlowLoading } from './ui'
 
 const SUPPORTED_CHAINS = [base, ink, optimism, arbitrum]
 
@@ -184,6 +184,7 @@ function ChainBalanceCard({
   const nativeAmount = native ? Number(formatUnits(native.value, native.decimals)) : null
   const nativePrice = prices?.ethUsd ?? null
   const nativeUsd = nativeAmount !== null && nativePrice !== null ? nativeAmount * nativePrice : null
+  const showSlowHint = useSlowLoading(isLoading, 1500)
 
   useEffect(() => {
     setRow('native', {
@@ -273,6 +274,11 @@ function ChainBalanceCard({
           />
         ))}
       </div>
+      {showSlowHint && (
+        <p className="mt-2 text-xs text-neutral-500">
+          Loading {chainMeta.name} balance…
+        </p>
+      )}
     </div>
   )
 }
@@ -282,7 +288,7 @@ export default function Balances() {
   const [totalsByChain, setTotalsByChain] = useState<Record<number, number | null>>({})
   const [rowsByChain, setRowsByChain] = useState<Record<number, BalanceRow[]>>({})
 
-  const { data: prices, isError: pricesError } = useQuery({
+  const { data: prices, isLoading: pricesLoading, isError: pricesError, refetch: refetchPrices } = useQuery({
     queryKey: ['token-prices'],
     queryFn: fetchTokenPrices,
     staleTime: 60_000,
@@ -320,9 +326,22 @@ export default function Balances() {
             <span className="font-mono text-neutral-100">
               {formatUsd(grandTotal)}
             </span>
+            {pricesLoading && (
+              <span className="ml-2 text-xs text-neutral-500">
+                (loading prices…)
+              </span>
+            )}
             {pricesError && (
               <span className="ml-2 text-xs text-neutral-500">
-                (prices unavailable)
+                (prices unavailable —{' '}
+                <button
+                  type="button"
+                  onClick={() => refetchPrices()}
+                  className="underline hover:text-purple-300"
+                >
+                  retry
+                </button>
+                )
               </span>
             )}
           </span>

@@ -1,5 +1,8 @@
-// Tiny shared UI bits (skeleton loader, retry button) used across the
-// Balances / Activity / NFTs sections. Deliberately minimal — no UI library.
+// Tiny shared UI bits (skeleton loader, retry button, slow-loading hint)
+// used across the Balances / Activity / NFTs / Prices sections. Deliberately
+// minimal — no UI library.
+import { useEffect, useState } from 'react'
+
 export function Skeleton({ className = '' }: { className?: string }) {
   return (
     <span
@@ -33,4 +36,25 @@ export function ErrorState({
 
 export function EmptyState({ message }: { message: string }) {
   return <p className="py-6 text-center text-sm text-neutral-500">{message}</p>
+}
+
+/**
+ * Returns true only once `active` has been true continuously for `delayMs`.
+ * Used to show a friendlier "Loading X on Base…" text under a skeleton once
+ * a fetch has clearly become slow, without flashing that text on every
+ * normal, fast load (which would just be noise).
+ */
+export function useSlowLoading(active: boolean, delayMs = 1200): boolean {
+  const [slow, setSlow] = useState(false)
+
+  useEffect(() => {
+    if (!active) {
+      setSlow(false)
+      return
+    }
+    const timer = setTimeout(() => setSlow(true), delayMs)
+    return () => clearTimeout(timer)
+  }, [active, delayMs])
+
+  return slow
 }

@@ -1,18 +1,22 @@
 // Recent activity (transaction history) table, per chain, backed by
-// Blockscout's public v2 API (works for both Base and Ink, no API key).
-// Includes a simple Sent/Received filter and a CSV export per chain.
-import { useMemo, useState } from 'react'
+// Blockscout's public v2 API (works for Base/Ink/Optimism/Arbitrum, no API
+// key). Includes a Sent/Received filter, CSV export, pagination ("Load
+// more") so a busy wallet never renders hundreds of rows at once, and a
+// "still loading" hint for slow networks/APIs.
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { arbitrum, base, ink, optimism } from 'viem/chains'
 import { formatUnits } from 'viem'
-import { fetchRecentActivity, explorerTxUrl } from './blockscout'
+import { fetchRecentActivity, explorerTxUrl, type ActivityItem } from './blockscout'
 import { useViewingAddress } from './viewingAddress'
 import { downloadCsv } from './csv'
-import { Skeleton, ErrorState, EmptyState } from './ui'
+import { Skeleton, ErrorState, EmptyState, useSlowLoading } from './ui'
 
 const CHAINS = [base, ink, optimism, arbitrum]
+const PAGE_SIZE = 20
 
 type DirectionFilter = 'all' | 'sent' | 'received'
+type PageCursor = Record<string, string | number> | null
 
 function shortHash(hash: string) {
   return `${hash.slice(0, 6)}…${hash.slice(-4)}`
@@ -45,27 +49,75 @@ function TableSkeleton() {
   )
 }
 
+/** Turns a thrown error into a short, specific label instead of a raw stack. */
+function describeError(err: unknown): string {
+  if (err instanceof Error) {
+    if (err.name === 'TimeoutError') return `Timed out — ${err.message}.`
+    return err.message
+  }
+  return 'Unknown error.'
+}
+
 function ChainActivityTable({ chainId, address }: { chainId: number; address: `0x${string}` }) {
   const chainMeta = CHAINS.find((c) => c.id === chainId)!
   const [filter, setFilter] = useState<DirectionFilter>('all')
 
+  // Extra pages loaded via "Load more", beyond the first page React Query
+  // owns. Reset whenever we're looking at a different chain/address so
+  // stale pages from a previous wallet never leak into the new one.
+  const [extraPages, setExtraPages] = useState<ActivityItem[][]>([])
+  const [cursor, setCursor] = useState<PageCursor>(null)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null)
+
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['activity', chainId, address],
-    queryFn: () => fetchRecentActivity(chainId, address, 10),
+    queryFn: () => fetchRecentActivity(chainId, address, { limit: PAGE_SIZE }),
     staleTime: 30_000,
   })
 
+  useEffect(() => {
+    setExtraPages([])
+    setCursor(null)
+    setLoadMoreError(null)
+  }, [chainId, address])
+
+  const showSlowHint = useSlowLoading(isLoading, 1200)
+
+  const allItems = useMemo(
+    () => [...(data?.items ?? []), ...extraPages.flat()],
+    [data, extraPages],
+  )
+  const nextCursor = extraPages.length > 0 ? cursor : (data?.nextPageParams ?? null)
+
+  async function handleLoadMore() {
+    if (!nextCursor) return
+    setIsLoadingMore(true)
+    setLoadMoreError(null)
+    try {
+      const page = await fetchRecentActivity(chainId, address, {
+        limit: PAGE_SIZE,
+        pageParams: nextCursor,
+      })
+      setExtraPages((prev) => [...prev, page.items])
+      setCursor(page.nextPageParams)
+    } catch (err) {
+      setLoadMoreError(describeError(err))
+    } finally {
+      setIsLoadingMore(false)
+    }
+  }
+
   const filtered = useMemo(() => {
-    if (!data) return data
-    if (filter === 'all') return data
-    return data.filter((tx) => (filter === 'sent' ? tx.isOutgoing : !tx.isOutgoing))
-  }, [data, filter])
+    if (filter === 'all') return allItems
+    return allItems.filter((tx) => (filter === 'sent' ? tx.isOutgoing : !tx.isOutgoing))
+  }, [allItems, filter])
 
   function handleExport() {
-    if (!data || data.length === 0) return
+    if (allItems.length === 0) return
     downloadCsv(
       `onthebitcoin-activity-${chainMeta.name.toLowerCase().replace(/\s+/g, '-')}.csv`,
-      data.map((tx) => ({
+      allItems.map((tx) => ({
         chain: chainMeta.name,
         time: tx.timestamp ?? '',
         direction: tx.isOutgoing ? 'Sent' : 'Received',
@@ -86,7 +138,7 @@ function ChainActivityTable({ chainId, address }: { chainId: number; address: `0
         <h3 className="font-semibold text-neutral-100">
           {chainMeta.name} — recent activity
         </h3>
-        {(data?.length ?? 0) > 0 && (
+        {allItems.length > 0 && (
           <div className="flex items-center gap-2">
             <select
               value={filter}
@@ -108,24 +160,33 @@ function ChainActivityTable({ chainId, address }: { chainId: number; address: `0
         )}
       </div>
 
-      {isLoading && <TableSkeleton />}
+      {isLoading && (
+        <>
+          <TableSkeleton />
+          {showSlowHint && (
+            <p className="mt-2 text-xs text-neutral-500">
+              Loading activity on {chainMeta.name}…
+            </p>
+          )}
+        </>
+      )}
 
       {isError && (
         <ErrorState
-          message={`Could not load activity: ${(error as Error)?.message ?? 'unknown error'}`}
+          message={`Could not load activity on ${chainMeta.name}: ${describeError(error)}`}
           onRetry={() => refetch()}
         />
       )}
 
-      {!isLoading && !isError && (data?.length ?? 0) === 0 && (
+      {!isLoading && !isError && allItems.length === 0 && (
         <EmptyState message={`No recent transactions found on ${chainMeta.name}.`} />
       )}
 
-      {!isLoading && !isError && (data?.length ?? 0) > 0 && (filtered?.length ?? 0) === 0 && (
+      {!isLoading && !isError && allItems.length > 0 && filtered.length === 0 && (
         <EmptyState message="No transactions match this filter." />
       )}
 
-      {!isLoading && !isError && (filtered?.length ?? 0) > 0 && (
+      {!isLoading && !isError && filtered.length > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
@@ -137,7 +198,7 @@ function ChainActivityTable({ chainId, address }: { chainId: number; address: `0
               </tr>
             </thead>
             <tbody>
-              {filtered!.map((tx) => (
+              {filtered.map((tx) => (
                 <tr key={tx.hash} className="border-t border-neutral-800">
                   <td className="py-2 pr-3 text-neutral-400 whitespace-nowrap">
                     {formatTime(tx.timestamp)}
@@ -172,6 +233,22 @@ function ChainActivityTable({ chainId, address }: { chainId: number; address: `0
               ))}
             </tbody>
           </table>
+
+          {nextCursor && filter === 'all' && (
+            <div className="mt-3 flex flex-col items-center gap-1 border-t border-neutral-800 pt-3">
+              <button
+                type="button"
+                disabled={isLoadingMore}
+                onClick={handleLoadMore}
+                className="rounded-lg border border-neutral-700 px-3 py-1.5 text-xs text-neutral-300 hover:border-purple-500 hover:text-purple-300 disabled:opacity-50"
+              >
+                {isLoadingMore ? 'Loading more…' : `Load ${PAGE_SIZE} more`}
+              </button>
+              {loadMoreError && (
+                <p className="text-xs text-red-400">{loadMoreError}</p>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

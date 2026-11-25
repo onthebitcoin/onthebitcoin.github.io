@@ -38,11 +38,16 @@ _Watch-only view of a real public address — no wallet connection needed to see
   USD value per chain and a portfolio-wide total (CoinGecko prices).
 - **Recent activity**: last transactions on Base, Ink, Optimism, and
   Arbitrum — time, action (Sent/Received + decoded method name), value, and a
-  link to the block explorer. Filter by Sent/Received per chain, export the
-  full list to CSV.
+  link to the block explorer. Loads 20 at a time with a "Load more" button,
+  so a very active wallet never freezes the page rendering hundreds of rows
+  at once. Filter by Sent/Received per chain, export the full loaded list to
+  CSV.
 - **NFTs**: image grid of the connected wallet's NFTs on Base, Ethereum,
   Optimism, and Arbitrum, linking out to their OpenSea listing, with a search
-  box to filter by name/collection across all four chains at once.
+  box to filter by name/collection across all four chains at once, and
+  "Load more" pagination (OpenSea's own cursor) for large collections —
+  each card gets its own image skeleton and a graceful fallback if an image
+  fails to load.
 - **Export to CSV**: both the balances table (every chain, every token, with
   USD values) and each chain's activity table export with one click — handy
   for taxes, spreadsheets, or just backing up what you're tracking.
@@ -51,7 +56,18 @@ _Watch-only view of a real public address — no wallet connection needed to see
   only, cannot move funds or need approval, shown only for the chain your
   wallet is actually active on.
 - **Dark mode, responsive** (desktop and mobile), with loading skeletons,
-  empty states, and error states with a retry button throughout.
+  empty states, and error states with a retry button throughout. Any fetch
+  that's still running after ~1.2–1.5s also shows a specific text hint (e.g.
+  "Loading activity on Base…", "Fetching NFT metadata for Base…") so a slow
+  network never just looks frozen.
+- **Resilient networking.** Every external call (Blockscout, OpenSea,
+  CoinGecko) goes through a shared helper (`net.ts`) with a hard timeout and
+  one quiet retry on timeout/network errors (never on a real 4xx, since
+  repeating those wastes time for the same result). Errors are specific —
+  "timed out", "rate limited", "network error", "API key rejected" — never a
+  generic "something went wrong", and each section's error is fully isolated
+  with its own Retry button, so one slow or failing API never blocks or
+  crashes the rest of the page.
 - **No backend, no database** — every screen is a direct, client-side call to
   a public chain RPC or a public API (Blockscout, OpenSea). Nothing is stored
   or sent anywhere except those direct calls.
@@ -86,7 +102,8 @@ src/
   viewingAddress.tsx  multi-wallet state: connected wallet vs watched addresses (localStorage)
   WalletSwitcher.tsx  UI to add/remove/switch watched addresses
   csv.ts           tiny client-side CSV export helper (no dependency)
-  ui.tsx           shared Skeleton / ErrorState / EmptyState components
+  net.ts           shared fetch helper: timeout + one quiet retry, typed TimeoutError/HttpError
+  ui.tsx           shared Skeleton / ErrorState / EmptyState + useSlowLoading hook
   Balances.tsx     native + token balances section, chain switcher
   Activity.tsx     recent transactions table, per chain
   Nfts.tsx         NFT grid, per chain
@@ -207,6 +224,18 @@ token addresses, and the chain array in `Balances.tsx`/`Activity.tsx`/
   It's only shown next to tokens on the chain the connected wallet is
   actually active on (watch-only addresses never show it, since there's no
   wallet to update).
+- **Loading feedback has two tiers on purpose.** A skeleton appears
+  immediately for every fetch (so the UI is never blank), but the *text*
+  hint ("Loading activity on Base…") only appears via `useSlowLoading()`
+  after a short delay — this avoids flashing text on every normal fast load,
+  while still telling the user clearly what's taking a while if the network
+  or an API is actually slow.
+- **Activity and NFTs paginate instead of loading everything.** Both fetch a
+  bounded first page (20 transactions / 24 NFTs) and expose "Load more"
+  using each API's own cursor (Blockscout's `next_page_params`, OpenSea's
+  `next`). A wallet with thousands of transactions or a large NFT collection
+  never has to render — or wait for — all of it up front. CSV export always
+  covers everything loaded so far, not just the first page.
 
 ## Possible next steps
 
