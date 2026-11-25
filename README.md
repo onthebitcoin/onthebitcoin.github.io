@@ -56,6 +56,10 @@ _Screenshot coming soon — see the live demo above in the meantime._
 ## Project structure
 
 ```
+public/
+  favicon.ico, icons/           favicon + apple-touch-icon, generated from images/otb-r1c.png
+  images/otb-r1c.png            square logo (header + favicon source)
+  images/onthebitcoin-banner@2x.png   wide brand banner (shown pre-connect)
 src/
   wagmi.ts         wagmi/RainbowKit config: chains, connectors, WalletConnect id
   tokens.ts        known ERC-20 addresses per chain (Base, Ink)
@@ -65,7 +69,7 @@ src/
   Balances.tsx     native + token balances section, chain switcher
   Activity.tsx     recent transactions table, per chain
   Nfts.tsx         NFT grid, per chain
-  App.tsx          page layout, header/footer, wires the sections together
+  App.tsx          page layout, header/footer, branding, wires sections together
   main.tsx         React root, wagmi/query/RainbowKit providers
 ```
 

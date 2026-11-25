@@ -41,6 +41,12 @@ export async function fetchOpenSeaNfts(
     { headers: { 'x-api-key': apiKey } },
   )
   if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
+      throw new Error(
+        'OpenSea API key rejected (invalid or expired). Get a new one at ' +
+          'docs.opensea.io/reference/api-keys and update VITE_OPENSEA_API_KEY.',
+      )
+    }
     throw new Error(`OpenSea request failed: ${res.status}`)
   }
   const data: { nfts?: OpenSeaNftRaw[] } = await res.json()

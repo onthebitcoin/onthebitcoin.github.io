@@ -146,7 +146,7 @@ export default function Balances() {
   if (!isConnected) return null
 
   return (
-    <section className="mt-6">
+    <section className="mt-8">
       <h2 className="mb-3 text-lg font-semibold text-neutral-200">
         Balances
       </h2>

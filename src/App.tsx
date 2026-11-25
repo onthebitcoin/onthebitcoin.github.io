@@ -1,6 +1,6 @@
 // App shell. Step 1: wallet connect. Step 2: multi-chain balances
 // (Balances.tsx). Step 3: activity table (Activity.tsx). Step 4: OpenSea
-// NFTs (Nfts.tsx). Step 5: polish (this file's footer + shared ui.tsx states).
+// NFTs (Nfts.tsx). Step 5: polish (footer, shared ui.tsx states, branding).
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount } from 'wagmi'
 import Balances from './Balances'
@@ -14,21 +14,26 @@ export default function App() {
     <div className="flex min-h-screen flex-col bg-neutral-950 text-neutral-100">
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-8">
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-neutral-800 pb-6">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              Ink & Base Activity Dashboard
-            </h1>
-            <p className="mt-1 text-sm text-neutral-400">
-              Track wallet activity across Base, Ink and OpenSea.
-            </p>
+          <div className="flex items-center gap-3">
+            <img
+              src="/images/otb-r1c.png"
+              alt="onthebitcoin logo"
+              className="h-10 w-10 rounded-lg"
+            />
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">
+                Ink & Base Activity Dashboard
+              </h1>
+              <p className="mt-1 text-sm text-neutral-400">
+                Track wallet activity across Base, Ink and OpenSea.
+              </p>
+            </div>
           </div>
           <ConnectButton />
         </header>
 
         <p className="mt-3 text-center text-xs text-neutral-500">
-          🔒 Read-only: this app never asks for, accesses, or stores your
-          private key or seed phrase. All it ever requests is your public
-          address, via your wallet's normal connect/sign-in prompt.
+          🔒 Read-only — never accesses your private key or seed phrase.
         </p>
 
         <main className="mt-8 flex-1">
@@ -49,9 +54,18 @@ export default function App() {
               <Nfts />
             </>
           ) : (
-            <div className="rounded-xl border border-dashed border-neutral-800 p-10 text-center text-neutral-400">
-              Connect a wallet to see Base/Ink balances, recent activity and
-              OpenSea NFTs.
+            <div className="space-y-6">
+              <div className="overflow-hidden rounded-xl border border-neutral-800">
+                <img
+                  src="/images/onthebitcoin-banner@2x.png"
+                  alt="onthebitcoin — Noise or signal? Markets, Crypto, AI, Tech, Macro"
+                  className="aspect-[3/1] w-full object-cover"
+                />
+              </div>
+              <div className="rounded-xl border border-dashed border-neutral-800 p-10 text-center text-neutral-400">
+                Connect a wallet to see Base/Ink balances, recent activity and
+                OpenSea NFTs.
+              </div>
             </div>
           )}
         </main>
