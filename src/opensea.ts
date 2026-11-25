@@ -25,7 +25,7 @@ interface OpenSeaNftRaw {
 }
 
 export async function fetchOpenSeaNfts(
-  chain: 'base' | 'ethereum',
+  chain: 'base' | 'ethereum' | 'optimism' | 'arbitrum',
   address: string,
   apiKey: string,
   limit = 24,

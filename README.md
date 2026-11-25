@@ -1,11 +1,11 @@
-# onthebitcoin — Base & Ink Wallet Dashboard
+# onthebitcoin — Multi-Chain Wallet Dashboard
 
 A local-first, read-only wallet dashboard by **onthebitcoin**, tracking
-balances, activity, and NFTs across **Base**, **Ink (Inkonchain)**, and
-**OpenSea**. Built to demonstrate practical Web3 frontend work — wallet
-connect, multi-chain data, and third-party API integration — and used in
-daily personal workflow to monitor wallet holdings across several chains from
-one screen.
+balances, activity, and NFTs across **Base**, **Ink (Inkonchain)**,
+**Optimism**, **Arbitrum**, and **OpenSea**. Built to demonstrate practical
+Web3 frontend work — wallet connect, multi-chain data, and third-party API
+integration — and used in daily personal workflow to monitor wallet holdings
+across several chains from one screen.
 
 ![tech](https://img.shields.io/badge/stack-React%20%2B%20TypeScript%20%2B%20Vite-blue)
 ![tech](https://img.shields.io/badge/web3-wagmi%20%2B%20viem%20%2B%20RainbowKit-purple)
@@ -28,13 +28,13 @@ _Screenshot coming soon — see the live demo above in the meantime._
 
 - **Connect any wallet** (MetaMask, Coinbase Wallet, Rainbow, WalletConnect...)
   via RainbowKit.
-- **Multi-chain balances**: native ETH plus USDC/WETH balances on Base and
-  Ink, with a one-click chain switch.
-- **Recent activity**: last transactions on Base and Ink — time, action
-  (Sent/Received + decoded method name), value, and a link to the block
-  explorer.
-- **NFTs**: image grid of the connected wallet's NFTs on Base and Ethereum,
-  linking out to their OpenSea listing.
+- **Multi-chain balances**: native ETH plus USDC/WETH balances on Base, Ink,
+  Optimism, and Arbitrum, with a one-click chain switch.
+- **Recent activity**: last transactions on Base, Ink, Optimism, and
+  Arbitrum — time, action (Sent/Received + decoded method name), value, and a
+  link to the block explorer.
+- **NFTs**: image grid of the connected wallet's NFTs on Base, Ethereum,
+  Optimism, and Arbitrum, linking out to their OpenSea listing.
 - **Dark mode, responsive** (desktop and mobile), with loading skeletons,
   empty states, and error states with a retry button throughout.
 - **No backend, no database** — every screen is a direct, client-side call to
@@ -50,7 +50,7 @@ _Screenshot coming soon — see the live demo above in the meantime._
 | Styling | Tailwind CSS v4 | utility-first, no separate config file needed |
 | Wallet connect | RainbowKit | polished connect UI out of the box |
 | Chain interaction | wagmi v3 + viem | React hooks for balances, chain switching, contract reads |
-| Transaction history | Blockscout API v2 | public, no API key, same schema on Base and Ink |
+| Transaction history | Blockscout API v2 | public, no API key, same schema across Base, Ink, Optimism, Arbitrum |
 | NFTs | OpenSea API v2 | official NFT ownership data, free instant API key |
 | Data fetching/caching | TanStack Query | loading/error states, caching, retry, built into wagmi |
 
@@ -63,8 +63,8 @@ public/
   images/onthebitcoin-banner@2x.png   onthebitcoin brand banner (shown pre-connect)
 src/
   wagmi.ts         wagmi/RainbowKit config: chains, connectors, WalletConnect id
-  tokens.ts        known ERC-20 addresses per chain (Base, Ink)
-  blockscout.ts    Blockscout API v2 client (recent activity)
+  tokens.ts        known ERC-20 addresses per chain (Base, Ink, Optimism, Arbitrum)
+  blockscout.ts    Blockscout API v2 client (recent activity, 4 chains)
   opensea.ts       OpenSea API v2 client (NFTs by account)
   ui.tsx           shared Skeleton / ErrorState / EmptyState components
   Balances.tsx     native + token balances section, chain switcher
@@ -139,7 +139,15 @@ only WalletConnect itself is disabled.
 |---|---|---|
 | Base | 8453 | base.blockscout.com |
 | Ink (Inkonchain) | 57073 | explorer.inkonchain.com |
+| Optimism | 10 | explorer.optimism.io |
+| Arbitrum One | 42161 | arbitrum.blockscout.com |
 | Ethereum (NFTs only) | 1 | opensea.io |
+
+All four L2s share the same Blockscout v2 API schema, so `blockscout.ts`
+handles activity for all of them with one typed client — adding a chain is
+just a new entry in its `BLOCKSCOUT_CHAINS` map (plus `tokens.ts` for known
+token addresses, and the chain array in `Balances.tsx`/`Activity.tsx`/
+`Nfts.tsx`).
 
 ## Notable implementation decisions
 
@@ -151,9 +159,11 @@ only WalletConnect itself is disabled.
 - **wagmi v3's `useBalance` only returns the native balance** (no `token`
   option, no `.formatted` field, unlike wagmi v2). ERC-20 balances are read
   via `useReadContract` + viem's `erc20Abi`, formatted with `formatUnits`.
-- **One Blockscout client covers both chains.** Base and Ink both run public
-  Blockscout instances with the same v2 API schema, so a single typed client
-  handles transaction history for both — no custom indexer, no API key.
+- **One Blockscout client covers all four L2s.** Base, Ink, Optimism, and
+  Arbitrum all run public Blockscout instances with the same v2 API schema,
+  so a single typed client handles transaction history for all of them — no
+  custom indexer, no API key. Note: Optimism's instance moved domains, from
+  `optimism.blockscout.com` (now 301-redirects) to `explorer.optimism.io`.
 - Every data section (Balances, Activity, NFTs) independently handles
   loading (skeletons), empty, and error (with retry) states, so a slow or
   failing third-party API never breaks the rest of the page.
@@ -165,8 +175,6 @@ only WalletConnect itself is disabled.
 - Support tracking multiple saved wallet addresses (not just the connected
   one), useful for anyone managing several wallets across chains.
 - Add Ink NFT support once a reliable Ink-native NFT indexer is available.
-- Add Optimism and Arbitrum (both have public Blockscout instances and
-  OpenSea coverage already confirmed to work without extra setup).
 
 ## License
 

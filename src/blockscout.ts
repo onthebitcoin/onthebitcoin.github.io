@@ -1,11 +1,32 @@
 // Minimal Blockscout API v2 client for recent-transactions lookup.
-// Base and Ink both run public Blockscout instances with the same v2 schema,
-// so one client covers both chains (no API key needed, generous rate limits).
-import { base, ink } from 'viem/chains'
+// Base, Ink, Optimism, and Arbitrum all run public Blockscout instances with
+// the same v2 schema, so one client covers all of them (no API key needed).
+// Note: Optimism's instance moved from optimism.blockscout.com (now 301s)
+// to explorer.optimism.io — use that domain directly, verified working.
+import { arbitrum, base, ink, optimism } from 'viem/chains'
 
-export const BLOCKSCOUT_API_BASE: Record<number, string> = {
-  [base.id]: 'https://base.blockscout.com/api/v2',
-  [ink.id]: 'https://explorer.inkonchain.com/api/v2',
+interface BlockscoutChainMeta {
+  apiBase: string
+  explorerBase: string
+}
+
+export const BLOCKSCOUT_CHAINS: Record<number, BlockscoutChainMeta> = {
+  [base.id]: {
+    apiBase: 'https://base.blockscout.com/api/v2',
+    explorerBase: 'https://base.blockscout.com',
+  },
+  [ink.id]: {
+    apiBase: 'https://explorer.inkonchain.com/api/v2',
+    explorerBase: 'https://explorer.inkonchain.com',
+  },
+  [optimism.id]: {
+    apiBase: 'https://explorer.optimism.io/api/v2',
+    explorerBase: 'https://explorer.optimism.io',
+  },
+  [arbitrum.id]: {
+    apiBase: 'https://arbitrum.blockscout.com/api/v2',
+    explorerBase: 'https://arbitrum.blockscout.com',
+  },
 }
 
 export interface ActivityItem {
@@ -36,10 +57,10 @@ export async function fetchRecentActivity(
   address: string,
   limit = 10,
 ): Promise<ActivityItem[]> {
-  const apiBase = BLOCKSCOUT_API_BASE[chainId]
-  if (!apiBase) throw new Error(`No Blockscout endpoint configured for chain ${chainId}`)
+  const chainMeta = BLOCKSCOUT_CHAINS[chainId]
+  if (!chainMeta) throw new Error(`No Blockscout endpoint configured for chain ${chainId}`)
 
-  const res = await fetch(`${apiBase}/addresses/${address}/transactions`)
+  const res = await fetch(`${chainMeta.apiBase}/addresses/${address}/transactions`)
   if (!res.ok) {
     throw new Error(`Blockscout request failed: ${res.status}`)
   }
@@ -59,7 +80,6 @@ export async function fetchRecentActivity(
 }
 
 export function explorerTxUrl(chainId: number, hash: string): string {
-  if (chainId === base.id) return `https://base.blockscout.com/tx/${hash}`
-  if (chainId === ink.id) return `https://explorer.inkonchain.com/tx/${hash}`
-  return '#'
+  const chainMeta = BLOCKSCOUT_CHAINS[chainId]
+  return chainMeta ? `${chainMeta.explorerBase}/tx/${hash}` : '#'
 }

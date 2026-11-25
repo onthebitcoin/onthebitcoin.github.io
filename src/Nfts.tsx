@@ -5,9 +5,11 @@ import { useAccount } from 'wagmi'
 import { fetchOpenSeaNfts } from './opensea'
 import { Skeleton, ErrorState, EmptyState } from './ui'
 
-const CHAINS: { id: 'base' | 'ethereum'; label: string }[] = [
+const CHAINS: { id: 'base' | 'ethereum' | 'optimism' | 'arbitrum'; label: string }[] = [
   { id: 'base', label: 'Base' },
   { id: 'ethereum', label: 'Ethereum' },
+  { id: 'optimism', label: 'Optimism' },
+  { id: 'arbitrum', label: 'Arbitrum' },
 ]
 
 const OPENSEA_API_KEY = import.meta.env.VITE_OPENSEA_API_KEY || ''
@@ -64,7 +66,7 @@ function NftGridSkeleton() {
   )
 }
 
-function ChainNftGrid({ chainId, label }: { chainId: 'base' | 'ethereum'; label: string }) {
+function ChainNftGrid({ chainId, label }: { chainId: 'base' | 'ethereum' | 'optimism' | 'arbitrum'; label: string }) {
   const { address } = useAccount()
 
   const { data, isLoading, isError, error, refetch } = useQuery({

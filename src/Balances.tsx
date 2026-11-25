@@ -5,12 +5,12 @@
 // balances are read directly via useReadContract + viem's erc20Abi, formatted
 // with formatUnits.
 import { useAccount, useBalance, useReadContract, useSwitchChain } from 'wagmi'
-import { base, ink } from 'viem/chains'
+import { arbitrum, base, ink, optimism } from 'viem/chains'
 import { erc20Abi, formatUnits } from 'viem'
 import { TOKENS_BY_CHAIN } from './tokens'
 import { Skeleton } from './ui'
 
-const SUPPORTED_CHAINS = [base, ink]
+const SUPPORTED_CHAINS = [base, ink, optimism, arbitrum]
 
 function TokenRow({
   address,
@@ -150,7 +150,7 @@ export default function Balances() {
       <h2 className="mb-3 text-lg font-semibold text-neutral-200">
         Balances
       </h2>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {SUPPORTED_CHAINS.map((c) => (
           <ChainBalanceCard key={c.id} chainId={c.id} />
         ))}

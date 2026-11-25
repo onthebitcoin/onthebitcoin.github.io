@@ -25,8 +25,8 @@ export default function App() {
                 onthebitcoin
               </h1>
               <p className="mt-1 text-sm text-neutral-400">
-                Base &amp; Ink wallet dashboard — balances, activity &amp;
-                NFTs in one place.
+                Multi-chain wallet dashboard — balances, activity &amp; NFTs
+                in one place.
               </p>
             </div>
           </div>
@@ -72,9 +72,9 @@ export default function App() {
                   for tracking your own wallets.
                 </p>
                 <p className="mx-auto mt-2 max-w-md text-sm text-neutral-500">
-                  Connect a wallet to see Base/Ink balances, recent activity
-                  and OpenSea NFTs — all read-only, nothing leaves your
-                  browser.
+                  Connect a wallet to see balances and activity on Base, Ink,
+                  Optimism &amp; Arbitrum, plus OpenSea NFTs — all read-only,
+                  nothing leaves your browser.
                 </p>
               </div>
             </div>
@@ -84,8 +84,9 @@ export default function App() {
         <footer className="mt-10 border-t border-neutral-800 pt-4 text-center text-xs text-neutral-500">
           A product by <span className="text-neutral-300">onthebitcoin</span>.
           Built with React, wagmi &amp; RainbowKit. Data from Blockscout
-          (Base &amp; Ink) and the OpenSea API. Local-first — no backend, no
-          data leaves your browser except direct calls to those public APIs.
+          (Base, Ink, Optimism &amp; Arbitrum) and the OpenSea API.
+          Local-first — no backend, no data leaves your browser except direct
+          calls to those public APIs.
         </footer>
       </div>
     </div>

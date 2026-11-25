@@ -2,12 +2,12 @@
 // Blockscout's public v2 API (works for both Base and Ink, no API key).
 import { useQuery } from '@tanstack/react-query'
 import { useAccount } from 'wagmi'
-import { base, ink } from 'viem/chains'
+import { arbitrum, base, ink, optimism } from 'viem/chains'
 import { formatUnits } from 'viem'
 import { fetchRecentActivity, explorerTxUrl } from './blockscout'
 import { Skeleton, ErrorState, EmptyState } from './ui'
 
-const CHAINS = [base, ink]
+const CHAINS = [base, ink, optimism, arbitrum]
 
 function shortHash(hash: string) {
   return `${hash.slice(0, 6)}…${hash.slice(-4)}`
