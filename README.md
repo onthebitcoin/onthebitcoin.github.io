@@ -29,7 +29,8 @@ _Screenshot coming soon — see the live demo above in the meantime._
 - **Connect any wallet** (MetaMask, Coinbase Wallet, Rainbow, WalletConnect...)
   via RainbowKit.
 - **Multi-chain balances**: native ETH plus USDC/WETH balances on Base, Ink,
-  Optimism, and Arbitrum, with a one-click chain switch.
+  Optimism, and Arbitrum, with a one-click chain switch, plus an estimated
+  USD value per chain and a portfolio-wide total (CoinGecko prices).
 - **Recent activity**: last transactions on Base, Ink, Optimism, and
   Arbitrum — time, action (Sent/Received + decoded method name), value, and a
   link to the block explorer.
@@ -52,6 +53,7 @@ _Screenshot coming soon — see the live demo above in the meantime._
 | Chain interaction | wagmi v3 + viem | React hooks for balances, chain switching, contract reads |
 | Transaction history | Blockscout API v2 | public, no API key, same schema across Base, Ink, Optimism, Arbitrum |
 | NFTs | OpenSea API v2 | official NFT ownership data, free instant API key |
+| Portfolio value | CoinGecko public API | free, no API key, ETH + USDC prices |
 | Data fetching/caching | TanStack Query | loading/error states, caching, retry, built into wagmi |
 
 ## Project structure
@@ -66,6 +68,7 @@ src/
   tokens.ts        known ERC-20 addresses per chain (Base, Ink, Optimism, Arbitrum)
   blockscout.ts    Blockscout API v2 client (recent activity, 4 chains)
   opensea.ts       OpenSea API v2 client (NFTs by account)
+  prices.ts        CoinGecko client for ETH/USDC prices (portfolio USD value)
   ui.tsx           shared Skeleton / ErrorState / EmptyState components
   Balances.tsx     native + token balances section, chain switcher
   Activity.tsx     recent transactions table, per chain
@@ -167,6 +170,13 @@ token addresses, and the chain array in `Balances.tsx`/`Activity.tsx`/
 - Every data section (Balances, Activity, NFTs) independently handles
   loading (skeletons), empty, and error (with retry) states, so a slow or
   failing third-party API never breaks the rest of the page.
+- **Portfolio USD value is best-effort, never blocking.** Prices come from
+  CoinGecko's free public endpoint (no key). If that request fails, balances
+  still display normally — only the `$` figures fall back to "—" and a small
+  "(prices unavailable)" note appears next to the portfolio total. WETH/WETH9
+  are priced 1:1 with ETH (correct assumption for a wrapped-native token);
+  USDC uses CoinGecko's own USDC price rather than a hardcoded $1, since
+  stablecoins do de-peg briefly in practice.
 
 ## Possible next steps
 

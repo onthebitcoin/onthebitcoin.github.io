@@ -1,13 +1,17 @@
 // Multi-chain balance section: native + known token balances per chain,
-// with an easy "Switch to this chain" action.
+// with an easy "Switch to this chain" action, plus an estimated USD value
+// per chain and a portfolio-wide total (CoinGecko prices, best-effort).
 // Note: wagmi v3's useBalance only returns native balance ({decimals, symbol,
 // value} as bigint, no ERC20 `token` option and no `.formatted`). ERC20 token
 // balances are read directly via useReadContract + viem's erc20Abi, formatted
 // with formatUnits.
+import { useEffect, useState } from 'react'
 import { useAccount, useBalance, useReadContract, useSwitchChain } from 'wagmi'
 import { arbitrum, base, ink, optimism } from 'viem/chains'
 import { erc20Abi, formatUnits } from 'viem'
+import { useQuery } from '@tanstack/react-query'
 import { TOKENS_BY_CHAIN } from './tokens'
+import { fetchTokenPrices, formatUsd, priceForSymbol, type TokenPrices } from './prices'
 import { Skeleton } from './ui'
 
 const SUPPORTED_CHAINS = [base, ink, optimism, arbitrum]
@@ -18,12 +22,16 @@ function TokenRow({
   symbol,
   tokenAddress,
   decimals,
+  prices,
+  onUsdValue,
 }: {
   address: `0x${string}`
   chainId: number
   symbol: string
   tokenAddress: `0x${string}`
   decimals: number
+  prices?: TokenPrices
+  onUsdValue: (usd: number | null) => void
 }) {
   const { data, isLoading, isError, refetch } = useReadContract({
     address: tokenAddress,
@@ -32,6 +40,15 @@ function TokenRow({
     args: [address],
     chainId,
   })
+
+  const amount = data !== undefined ? Number(formatUnits(data, decimals)) : null
+  const price = prices ? priceForSymbol(symbol, prices) : null
+  const usdValue = amount !== null && price !== null ? amount * price : null
+
+  useEffect(() => {
+    onUsdValue(usdValue)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usdValue])
 
   return (
     <div className="flex items-center justify-between py-1.5 text-sm">
@@ -47,19 +64,48 @@ function TokenRow({
           error — retry
         </button>
       ) : (
-        <span className="font-mono text-neutral-100">
-          {data !== undefined ? Number(formatUnits(data, decimals)).toFixed(4) : '0.0000'}
+        <span className="text-right">
+          <span className="font-mono text-neutral-100">
+            {amount !== null ? amount.toFixed(4) : '0.0000'}
+          </span>
+          <span className="ml-1.5 text-xs text-neutral-500">
+            {formatUsd(usdValue)}
+          </span>
         </span>
       )}
     </div>
   )
 }
 
-function ChainBalanceCard({ chainId }: { chainId: number }) {
+function ChainBalanceCard({
+  chainId,
+  prices,
+  onUsdTotal,
+}: {
+  chainId: number
+  prices?: TokenPrices
+  onUsdTotal: (chainId: number, usd: number | null) => void
+}) {
   const { address, chain: activeChain } = useAccount()
   const { switchChain, isPending } = useSwitchChain()
   const chainMeta = SUPPORTED_CHAINS.find((c) => c.id === chainId)!
   const tokens = TOKENS_BY_CHAIN[chainId] ?? []
+
+  // usdParts holds the native row's value plus one entry per token, keyed by
+  // symbol so each row can report independently without clobbering others.
+  const [usdParts, setUsdParts] = useState<Record<string, number | null>>({})
+
+  const setPart = (key: string, value: number | null) =>
+    setUsdParts((prev) => (prev[key] === value ? prev : { ...prev, [key]: value }))
+
+  const total = Object.values(usdParts).some((v) => v !== null)
+    ? Object.values(usdParts).reduce((sum: number, v) => sum + (v ?? 0), 0)
+    : null
+
+  useEffect(() => {
+    onUsdTotal(chainId, total)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [total])
 
   const {
     data: native,
@@ -70,6 +116,15 @@ function ChainBalanceCard({ chainId }: { chainId: number }) {
     address,
     chainId,
   })
+
+  const nativeAmount = native ? Number(formatUnits(native.value, native.decimals)) : null
+  const nativePrice = prices?.ethUsd ?? null
+  const nativeUsd = nativeAmount !== null && nativePrice !== null ? nativeAmount * nativePrice : null
+
+  useEffect(() => {
+    setPart('native', nativeUsd)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nativeUsd])
 
   const isActive = activeChain?.id === chainId
 
@@ -84,7 +139,9 @@ function ChainBalanceCard({ chainId }: { chainId: number }) {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-semibold text-neutral-100">{chainMeta.name}</h3>
-          <p className="text-xs text-neutral-500">chain id {chainId}</p>
+          <p className="text-xs text-neutral-500">
+            {formatUsd(total)} est. value
+          </p>
         </div>
         {isActive ? (
           <span className="rounded-full bg-purple-500/20 px-2.5 py-1 text-xs text-purple-300">
@@ -118,8 +175,13 @@ function ChainBalanceCard({ chainId }: { chainId: number }) {
               error — retry
             </button>
           ) : (
-            <span className="font-mono text-neutral-100">
-              {native ? Number(formatUnits(native.value, native.decimals)).toFixed(5) : '0.00000'}
+            <span className="text-right">
+              <span className="font-mono text-neutral-100">
+                {nativeAmount !== null ? nativeAmount.toFixed(5) : '0.00000'}
+              </span>
+              <span className="ml-1.5 text-xs text-neutral-500">
+                {formatUsd(nativeUsd)}
+              </span>
             </span>
           )}
         </div>
@@ -133,6 +195,8 @@ function ChainBalanceCard({ chainId }: { chainId: number }) {
               symbol={t.symbol}
               tokenAddress={t.address}
               decimals={t.decimals}
+              prices={prices}
+              onUsdValue={(usd) => setPart(t.symbol, usd)}
             />
           ))}
       </div>
@@ -142,17 +206,50 @@ function ChainBalanceCard({ chainId }: { chainId: number }) {
 
 export default function Balances() {
   const { isConnected } = useAccount()
+  const [totalsByChain, setTotalsByChain] = useState<Record<number, number | null>>({})
+
+  const { data: prices, isError: pricesError } = useQuery({
+    queryKey: ['token-prices'],
+    queryFn: fetchTokenPrices,
+    staleTime: 60_000,
+    retry: 1,
+  })
 
   if (!isConnected) return null
 
+  const knownTotals = Object.values(totalsByChain).filter(
+    (v): v is number => v !== null && v !== undefined,
+  )
+  const grandTotal = knownTotals.length > 0 ? knownTotals.reduce((a, b) => a + b, 0) : null
+
   return (
     <section className="mt-8">
-      <h2 className="mb-3 text-lg font-semibold text-neutral-200">
-        Balances
-      </h2>
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-lg font-semibold text-neutral-200">Balances</h2>
+        <p className="text-sm text-neutral-400">
+          Portfolio total:{' '}
+          <span className="font-mono text-neutral-100">
+            {formatUsd(grandTotal)}
+          </span>
+          {pricesError && (
+            <span className="ml-2 text-xs text-neutral-500">
+              (prices unavailable)
+            </span>
+          )}
+        </p>
+      </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {SUPPORTED_CHAINS.map((c) => (
-          <ChainBalanceCard key={c.id} chainId={c.id} />
+          <ChainBalanceCard
+            key={c.id}
+            chainId={c.id}
+            prices={prices}
+            onUsdTotal={(chainId, usd) =>
+              setTotalsByChain((prev) =>
+                prev[chainId] === usd ? prev : { ...prev, [chainId]: usd },
+              )
+            }
+          />
         ))}
       </div>
     </section>
