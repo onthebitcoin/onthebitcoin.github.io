@@ -10,12 +10,18 @@ balances and NFT holdings across several chains from one screen.
 ![tech](https://img.shields.io/badge/web3-wagmi%20%2B%20viem%20%2B%20RainbowKit-purple)
 ![tech](https://img.shields.io/badge/license-MIT-green)
 
-**Live demo:** _add your Vercel URL here after deploying (see Deployment below)_
+**Live demo:** [onthebitcoin.github.io](https://onthebitcoin.github.io/)
 
 ## Screenshot
 
-_Add a screenshot or short screen recording here once deployed — this is the
-single highest-impact addition for a portfolio README._
+<!--
+  Add a real screenshot (connected wallet, with balances/activity/NFTs
+  populated) here before publishing to a portfolio — a populated screenshot
+  is the single highest-impact addition to this README.
+  Markdown: ![Dashboard screenshot](./docs/screenshot.png)
+-->
+
+_Screenshot coming soon — see the live demo above in the meantime._
 
 ## What it does
 
@@ -51,7 +57,7 @@ single highest-impact addition for a portfolio README._
 
 ```
 src/
-  wagmi.ts        wagmi/RainbowKit config: chains, connectors, WalletConnect id
+  wagmi.ts         wagmi/RainbowKit config: chains, connectors, WalletConnect id
   tokens.ts        known ERC-20 addresses per chain (Base, Ink)
   blockscout.ts    Blockscout API v2 client (recent activity)
   opensea.ts       OpenSea API v2 client (NFTs by account)
@@ -79,14 +85,28 @@ npm run build
 npm run preview
 ```
 
-## Deployment (Vercel)
+## Deployment
 
-1. Push this repo to GitHub (see below).
-2. Go to [vercel.com/new](https://vercel.com/new), import the repo — Vercel
+This repo deploys automatically to **GitHub Pages** via GitHub Actions
+(`.github/workflows/deploy.yml`): every push to `main` runs `npm ci && npm run
+build` and publishes `dist/` — see the live demo link above.
+
+To set this up on your own fork/repo:
+
+1. In the repo's GitHub Settings → Pages, set **Source** to "GitHub Actions".
+2. In Settings → Secrets and variables → Actions, add the two secrets from
+   `.env.example` (`VITE_WALLETCONNECT_PROJECT_ID`, `VITE_OPENSEA_API_KEY`).
+3. Push to `main` (or re-run the workflow manually) — Actions builds and
+   deploys automatically.
+
+### Alternative: Vercel
+
+Works just as well if you prefer Vercel's workflow:
+
+1. Go to [vercel.com/new](https://vercel.com/new), import the repo — Vercel
    auto-detects the Vite framework preset, no config needed.
-3. Add the two environment variables from `.env.example` in the Vercel
-   project settings (`VITE_WALLETCONNECT_PROJECT_ID`, `VITE_OPENSEA_API_KEY`).
-4. Deploy. Every push to `main` redeploys automatically.
+2. Add the same two environment variables in the Vercel project settings.
+3. Deploy. Every push to `main` redeploys automatically.
 
 ## Environment variables (`.env.local`)
 
