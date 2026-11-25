@@ -22,14 +22,9 @@ across several chains from one screen.
 
 ## Screenshot
 
-<!--
-  Add a real screenshot (connected wallet, with balances/activity/NFTs
-  populated) here before publishing to a portfolio — a populated screenshot
-  is the single highest-impact addition to this README.
-  Markdown: ![onthebitcoin dashboard screenshot](./docs/screenshot.png)
--->
+![onthebitcoin dashboard — balances, activity across Base, Ink, Optimism and Arbitrum](./docs/screenshot.png)
 
-_Screenshot coming soon — see the live demo above in the meantime._
+_Watch-only view of a real public address — no wallet connection needed to see this._
 
 ## What it does
 
