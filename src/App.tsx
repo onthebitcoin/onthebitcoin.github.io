@@ -8,6 +8,8 @@ import Balances from './Balances'
 import Activity from './Activity'
 import Nfts from './Nfts'
 import WalletSwitcher from './WalletSwitcher'
+import ExternalTools from './ExternalTools'
+import AddressActions from './AddressActions'
 import { useViewingAddress } from './viewingAddress'
 
 export default function App() {
@@ -43,21 +45,26 @@ export default function App() {
 
         <WalletSwitcher />
 
+        <ExternalTools />
+
         <main className="mt-8 flex-1">
           {address ? (
             <>
               <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 text-sm">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <p className="text-neutral-400">Viewing address</p>
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-xs ${
-                      isConnectedWallet
-                        ? 'bg-emerald-500/20 text-emerald-300'
-                        : 'bg-neutral-700/50 text-neutral-300'
-                    }`}
-                  >
-                    {isConnectedWallet ? 'Connected' : 'Watch-only'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-xs ${
+                        isConnectedWallet
+                          ? 'bg-emerald-500/20 text-emerald-300'
+                          : 'bg-neutral-700/50 text-neutral-300'
+                      }`}
+                    >
+                      {isConnectedWallet ? 'Connected' : 'Watch-only'}
+                    </span>
+                    <AddressActions address={address} />
+                  </div>
                 </div>
                 <p className="mt-1 break-all font-mono text-neutral-100">
                   {address}

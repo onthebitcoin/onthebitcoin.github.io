@@ -1,9 +1,10 @@
 // Recent activity (transaction history) table, per chain, backed by
 // Blockscout's public v2 API (works for Base/Ink/Optimism/Arbitrum, no API
 // key). Includes a Sent/Received filter, CSV export, pagination ("Load
-// more") so a busy wallet never renders hundreds of rows at once, and a
-// "still loading" hint for slow networks/APIs.
-import { useEffect, useMemo, useState } from 'react'
+// more") so a busy wallet never renders hundreds of rows at once, a
+// "still loading" hint for slow networks/APIs, a summary stat line, and a
+// click-to-expand detail view per transaction.
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { arbitrum, base, ink, optimism } from 'viem/chains'
 import { formatUnits } from 'viem'
@@ -34,6 +35,16 @@ function formatTime(ts: string | null) {
   })
 }
 
+function formatFullTime(ts: string | null) {
+  if (!ts) return 'Unknown'
+  const d = new Date(ts)
+  if (Number.isNaN(d.getTime())) return 'Unknown'
+  return d.toLocaleString(undefined, {
+    dateStyle: 'full',
+    timeStyle: 'medium',
+  })
+}
+
 function TableSkeleton() {
   return (
     <div className="space-y-2 py-1">
@@ -58,9 +69,97 @@ function describeError(err: unknown): string {
   return 'Unknown error.'
 }
 
+function DetailRow({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="grid grid-cols-3 gap-2 py-1.5 text-sm">
+      <span className="text-neutral-500">{label}</span>
+      <span className="col-span-2 break-all font-mono text-neutral-100">{value}</span>
+    </div>
+  )
+}
+
+function TxDetailModal({
+  tx,
+  chainId,
+  chainName,
+  symbol,
+  onClose,
+}: {
+  tx: ActivityItem
+  chainId: number
+  chainName: string
+  symbol: string
+  onClose: () => void
+}) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg rounded-xl border border-neutral-700 bg-neutral-900 p-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h4 className="font-semibold text-neutral-100">
+            {chainName} transaction
+          </h4>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded px-2 py-1 text-neutral-400 hover:text-neutral-100"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="divide-y divide-neutral-800">
+          <DetailRow label="Hash" value={tx.hash} />
+          <DetailRow label="Time" value={formatFullTime(tx.timestamp)} />
+          <DetailRow
+            label="Direction"
+            value={
+              <span className={tx.isOutgoing ? 'text-orange-300' : 'text-emerald-300'}>
+                {tx.isOutgoing ? 'Sent' : 'Received'}
+              </span>
+            }
+          />
+          <DetailRow label="Method" value={tx.action} />
+          <DetailRow
+            label="Value"
+            value={`${Number(formatUnits(BigInt(tx.valueWei), 18)).toFixed(8)} ${symbol}`}
+          />
+          <DetailRow label="From" value={tx.from} />
+          <DetailRow label="To" value={tx.to ?? '—'} />
+          <DetailRow label="Status" value={tx.status} />
+        </div>
+
+        <a
+          href={explorerTxUrl(chainId, tx.hash)}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-4 inline-block rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-purple-300 hover:border-purple-500"
+        >
+          View on block explorer ↗
+        </a>
+      </div>
+    </div>
+  )
+}
+
 function ChainActivityTable({ chainId, address }: { chainId: number; address: `0x${string}` }) {
   const chainMeta = CHAINS.find((c) => c.id === chainId)!
   const [filter, setFilter] = useState<DirectionFilter>('all')
+  const [selectedTx, setSelectedTx] = useState<ActivityItem | null>(null)
 
   // Extra pages loaded via "Load more", beyond the first page React Query
   // owns. Reset whenever we're looking at a different chain/address so
@@ -113,6 +212,21 @@ function ChainActivityTable({ chainId, address }: { chainId: number; address: `0
     return allItems.filter((tx) => (filter === 'sent' ? tx.isOutgoing : !tx.isOutgoing))
   }, [allItems, filter])
 
+  // Summary stats over everything loaded so far (not the server-side total —
+  // Blockscout doesn't expose a cheap total count, so this is honestly
+  // scoped to "loaded" and the label says so).
+  const summary = useMemo(() => {
+    const sent = allItems.filter((tx) => tx.isOutgoing)
+    const received = allItems.filter((tx) => !tx.isOutgoing)
+    const volumeWei = allItems.reduce((sum, tx) => sum + BigInt(tx.valueWei), 0n)
+    return {
+      total: allItems.length,
+      sentCount: sent.length,
+      receivedCount: received.length,
+      volume: Number(formatUnits(volumeWei, 18)),
+    }
+  }, [allItems])
+
   function handleExport() {
     if (allItems.length === 0) return
     downloadCsv(
@@ -160,6 +274,14 @@ function ChainActivityTable({ chainId, address }: { chainId: number; address: `0
         )}
       </div>
 
+      {allItems.length > 0 && (
+        <p className="mb-3 text-xs text-neutral-500">
+          {summary.total} loaded · {summary.sentCount} sent ·{' '}
+          {summary.receivedCount} received · ~{summary.volume.toFixed(4)}{' '}
+          {chainMeta.nativeCurrency.symbol} volume
+        </p>
+      )}
+
       {isLoading && (
         <>
           <TableSkeleton />
@@ -199,7 +321,11 @@ function ChainActivityTable({ chainId, address }: { chainId: number; address: `0
             </thead>
             <tbody>
               {filtered.map((tx) => (
-                <tr key={tx.hash} className="border-t border-neutral-800">
+                <tr
+                  key={tx.hash}
+                  onClick={() => setSelectedTx(tx)}
+                  className="cursor-pointer border-t border-neutral-800 hover:bg-neutral-800/50"
+                >
                   <td className="py-2 pr-3 text-neutral-400 whitespace-nowrap">
                     {formatTime(tx.timestamp)}
                   </td>
@@ -224,6 +350,7 @@ function ChainActivityTable({ chainId, address }: { chainId: number; address: `0
                       href={explorerTxUrl(chainId, tx.hash)}
                       target="_blank"
                       rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
                       className="font-mono text-purple-300 hover:underline"
                     >
                       {shortHash(tx.hash)}
@@ -250,6 +377,16 @@ function ChainActivityTable({ chainId, address }: { chainId: number; address: `0
             </div>
           )}
         </div>
+      )}
+
+      {selectedTx && (
+        <TxDetailModal
+          tx={selectedTx}
+          chainId={chainId}
+          chainName={chainMeta.name}
+          symbol={chainMeta.nativeCurrency.symbol}
+          onClose={() => setSelectedTx(null)}
+        />
       )}
     </div>
   )

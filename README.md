@@ -38,10 +38,12 @@ _Watch-only view of a real public address — no wallet connection needed to see
   USD value per chain and a portfolio-wide total (CoinGecko prices).
 - **Recent activity**: last transactions on Base, Ink, Optimism, and
   Arbitrum — time, action (Sent/Received + decoded method name), value, and a
-  link to the block explorer. Loads 20 at a time with a "Load more" button,
-  so a very active wallet never freezes the page rendering hundreds of rows
-  at once. Filter by Sent/Received per chain, export the full loaded list to
-  CSV.
+  link to the block explorer. A summary line (loaded count, sent/received
+  split, rough native-token volume) sits above each chain's table, and
+  clicking any row opens a detail view (full hash, full timestamp, method,
+  from/to, status). Loads 20 at a time with a "Load more" button, so a very
+  active wallet never freezes the page rendering hundreds of rows at once.
+  Filter by Sent/Received per chain, export the full loaded list to CSV.
 - **NFTs**: image grid of the connected wallet's NFTs on Base, Ethereum,
   Optimism, and Arbitrum, linking out to their OpenSea listing, with a search
   box to filter by name/collection across all four chains at once, and
@@ -51,6 +53,13 @@ _Watch-only view of a real public address — no wallet connection needed to see
 - **Export to CSV**: both the balances table (every chain, every token, with
   USD values) and each chain's activity table export with one click — handy
   for taxes, spreadsheets, or just backing up what you're tracking.
+- **Copy address + QR code**: next to whichever address you're viewing
+  (connected or watch-only), a Copy button with "Copied!" feedback and a
+  QR code generated entirely client-side (the `qrcode` package — the
+  address never goes to a third-party API just to render a QR).
+- **Quick links to external tools**: Jumper, LI.FI, and Uniswap, always
+  visible (no wallet or address needed) — pure `target="_blank"` navigation,
+  no swap logic lives in this app at all.
 - **Add token to wallet**: one click adds a known ERC-20 (USDC/WETH) to your
   connected wallet's token list via EIP-747 `wallet_watchAsset` — display
   only, cannot move funds or need approval, shown only for the chain your
@@ -85,6 +94,7 @@ _Watch-only view of a real public address — no wallet connection needed to see
 | NFTs | OpenSea API v2 | official NFT ownership data, free instant API key |
 | Portfolio value | CoinGecko public API | free, no API key, ETH + USDC prices |
 | Data fetching/caching | TanStack Query | loading/error states, caching, retry, built into wagmi |
+| QR codes | `qrcode` | tiny, generates client-side, no third-party API call |
 
 ## Project structure
 
@@ -104,6 +114,8 @@ src/
   csv.ts           tiny client-side CSV export helper (no dependency)
   net.ts           shared fetch helper: timeout + one quiet retry, typed TimeoutError/HttpError
   ui.tsx           shared Skeleton / ErrorState / EmptyState + useSlowLoading hook
+  AddressActions.tsx  Copy-to-clipboard + client-side QR code for the viewed address
+  ExternalTools.tsx   quick links out to Jumper / LI.FI / Uniswap (nav only, no swap logic)
   Balances.tsx     native + token balances section, chain switcher
   Activity.tsx     recent transactions table, per chain
   Nfts.tsx         NFT grid, per chain
@@ -236,6 +248,17 @@ token addresses, and the chain array in `Balances.tsx`/`Activity.tsx`/
   `next`). A wallet with thousands of transactions or a large NFT collection
   never has to render — or wait for — all of it up front. CSV export always
   covers everything loaded so far, not just the first page.
+- **Activity summary stats are honestly scoped to "loaded", not "total".**
+  Blockscout's API doesn't expose a cheap total-transaction count, so the
+  sent/received/volume line reflects exactly what's been fetched so far
+  (first page, or more after "Load more") — the label says "loaded" rather
+  than implying it's the wallet's entire lifetime activity.
+- **Every new feature in this round works with zero wallet connected.**
+  Quick-action links, copy/QR, activity summary, and the transaction detail
+  view all operate on whichever address `viewingAddress.tsx` resolves to —
+  connected or watch-only — with no code path that requires a live
+  connector. QR generation is fully client-side specifically so pasting a
+  watch-only address never sends it to a third party just to render a code.
 
 ## Possible next steps
 
@@ -243,8 +266,6 @@ token addresses, and the chain array in `Balances.tsx`/`Activity.tsx`/
   works fine, just not minimal).
 - Add Ink NFT support once a reliable Ink-native NFT indexer is available.
 - Light mode toggle (currently dark-only by design).
-- Quick links out to a swap aggregator (e.g. Jumper, LI.FI) for a held
-  token — pure navigation, no swap logic in-app.
 
 ## License
 
