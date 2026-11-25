@@ -46,9 +46,11 @@ _Watch-only view of a real public address — no wallet connection needed to see
   receiving"/"Mostly sending") computed from what's already loaded — no
   extra fetches, just a read-only view over the same data the sections
   below already have.
-- **Balances**: native ETH plus USDC/WETH balance for the selected chain,
-  with a one-click chain switch for the connected wallet, an estimated USD
-  value (CoinGecko prices), and CSV export.
+- **Balances**: native balance plus every ERC-20 token the address actually
+  holds on the selected chain (Blockscout's token-balances endpoint — not a
+  hardcoded shortlist), sorted by estimated USD value and capped to the top
+  20 so a wallet holding hundreds of spam/dust tokens stays fast and
+  readable. One-click chain switch for the connected wallet, CSV export.
 - **Recent activity**: last transactions on the selected chain — time,
   action (Sent/Received + decoded method name), value, and a link to the
   block explorer. A summary line (loaded count, sent/received split, rough
@@ -105,8 +107,9 @@ _Watch-only view of a real public address — no wallet connection needed to see
 | Wallet connect | RainbowKit | polished connect UI out of the box |
 | Chain interaction | wagmi v3 + viem | React hooks for balances, chain switching, contract reads |
 | Transaction history | Blockscout API v2 | public, no API key, same schema across Base, Ink, Optimism, Arbitrum |
+| Token balances | Blockscout API v2 | full token list + Blockscout's own USD exchange rate per token, no API key |
 | NFTs | OpenSea API v2 | official NFT ownership data, free instant API key |
-| Portfolio value | CoinGecko public API | free, no API key, ETH + USDC prices |
+| Portfolio value | CoinGecko public API | free, no API key, native ETH price only (tokens price via Blockscout above) |
 | Data fetching/caching | TanStack Query | loading/error states, caching, retry, built into wagmi |
 | QR codes | `qrcode` | tiny, generates client-side, no third-party API call |
 
@@ -119,10 +122,10 @@ public/
   images/onthebitcoin-banner@2x.png   onthebitcoin brand banner (shown pre-connect)
 src/
   wagmi.ts         wagmi/RainbowKit config: chains, connectors, WalletConnect id
-  tokens.ts        known ERC-20 addresses per chain (Base, Ink, Optimism, Arbitrum)
   blockscout.ts    Blockscout API v2 client (recent activity, 4 chains)
+  tokenBalances.ts     Blockscout token-balances client (full token list + USD rate per token)
   opensea.ts       OpenSea API v2 client (NFTs by account)
-  prices.ts        CoinGecko client for ETH/USDC prices (portfolio USD value)
+  prices.ts        CoinGecko client for native ETH price
   viewingAddress.tsx  multi-wallet state: connected wallet vs watched addresses (localStorage)
   selectedChain.tsx    single-chain-at-a-time state (localStorage), SUPPORTED_CHAINS list
   WalletSwitcher.tsx   wallet-chip row: switch between connected/watched addresses
@@ -210,10 +213,11 @@ only WalletConnect itself is disabled.
 | Arbitrum One | 42161 | arbitrum.blockscout.com | ✅ |
 
 All four L2s share the same Blockscout v2 API schema, so `blockscout.ts`
-handles activity for all of them with one typed client — adding a chain is
-just a new entry in its `BLOCKSCOUT_CHAINS` map (plus `tokens.ts` for known
-token addresses, `selectedChain.tsx`'s `SUPPORTED_CHAINS` list, and
-`Nfts.tsx`'s OpenSea slug map if the chain has NFT support).
+and `tokenBalances.ts` handle activity and token balances for all of them
+with one typed client each — adding a chain is just a new entry in the
+`BLOCKSCOUT_CHAINS` map (shared by both), `selectedChain.tsx`'s
+`SUPPORTED_CHAINS` list, and `Nfts.tsx`'s OpenSea slug map if the chain has
+NFT support.
 
 ## Notable implementation decisions
 
@@ -233,14 +237,27 @@ token addresses, `selectedChain.tsx`'s `SUPPORTED_CHAINS` list, and
 - Every data section (Balances, Activity, NFTs) independently handles
   loading (skeletons), empty, and error (with retry) states, so a slow or
   failing third-party API never breaks the rest of the page.
-- **Portfolio USD value is best-effort, never blocking.** Prices come from
-  CoinGecko's free public endpoint (no key). If that request fails, balances
-  still display normally — only the `$` figures fall back to "—" and a small
-  "prices unavailable — retry" note appears next to the chain's estimated
-  value. WETH/WETH9
-  are priced 1:1 with ETH (correct assumption for a wrapped-native token);
-  USDC uses CoinGecko's own USDC price rather than a hardcoded $1, since
-  stablecoins do de-peg briefly in practice.
+- **Token balances come from Blockscout, not a hardcoded list.** An earlier
+  version only showed USDC/WETH because those were the only token addresses
+  hand-entered per chain — accurate for those two tokens, but wildly
+  understated the real balance for any wallet holding other tokens (e.g. an
+  Ink address holding mostly meme tokens showed ~$0.18 instead of the real
+  ~$57). `tokenBalances.ts` now calls Blockscout's
+  `/addresses/{address}/token-balances` endpoint, which returns every ERC-20
+  the address holds *and* Blockscout's own USD `exchange_rate` per token —
+  so there's no need to map arbitrary token symbols to a CoinGecko id (which
+  would be unreliable for a long tail of random/spam tokens anyway).
+  Verified against Blockscout's own "Net Worth" figure for a real Ink
+  address and got an exact match ($57.35). Tokens Blockscout has no rate for
+  simply show "—" for USD value rather than guessing. Capped to the top 20
+  by USD value, since some wallets hold 400+ spam/dust tokens — fetching and
+  rendering all of them would be slow for no benefit.
+- **Native token price is still CoinGecko, best-effort and non-blocking.**
+  The token-balances endpoint only covers ERC-20s, so native ETH still
+  prices via CoinGecko's free public endpoint (no key). If that request
+  fails, balances still display normally — only the `$` figures fall back
+  to "—" and a small "prices unavailable — retry" note appears next to the
+  chain's estimated value.
 - **Multi-wallet is watch-only by construction.** `viewingAddress.tsx` just
   resolves one `address` — either the connected wallet's, or a saved one from
   `localStorage` — and every section reads balances/activity/NFTs for

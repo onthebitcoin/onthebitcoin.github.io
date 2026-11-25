@@ -1,26 +1,25 @@
-// Single-chain balance section: native + known token balances for whichever
-// chain is currently selected (ChainTabs / selectedChain.tsx), with an easy
-// "Switch to this chain" action, an estimated USD value, and a CSV export.
-// Note: wagmi v3's useBalance only returns native balance ({decimals, symbol,
-// value} as bigint, no ERC20 `token` option and no `.formatted`). ERC20 token
-// balances are read directly via useReadContract + viem's erc20Abi, formatted
-// with formatUnits.
-import { useEffect, useState } from 'react'
-import { useAccount, useBalance, useReadContract, useSwitchChain } from 'wagmi'
-import { erc20Abi, formatUnits } from 'viem'
+// Single-chain balance section for whichever chain is currently selected
+// (ChainTabs / selectedChain.tsx): native balance (wagmi's useBalance) plus
+// every ERC-20 token the address actually holds (Blockscout's
+// token-balances endpoint, tokenBalances.ts) — not a hardcoded shortlist.
+// Blockscout already supplies a USD exchange rate per token where it has
+// one, so that's used directly instead of trying to map arbitrary token
+// symbols to a CoinGecko id (unreliable for a long tail of random tokens).
+// Native ETH still prices via CoinGecko since the token-balances endpoint
+// only covers ERC-20s. Capped to the top 20 tokens by USD value so a wallet
+// holding hundreds of spam/dust tokens doesn't render (or fetch) all of them.
+import { useEffect } from 'react'
+import { useAccount, useBalance, useSwitchChain } from 'wagmi'
+import { formatUnits } from 'viem'
 import { useQuery } from '@tanstack/react-query'
-import { TOKENS_BY_CHAIN } from './tokens'
-import { fetchTokenPrices, formatUsd, priceForSymbol, type TokenPrices } from './prices'
+import { fetchTokenBalances, type TokenBalance } from './tokenBalances'
+import { fetchTokenPrices, formatUsd } from './prices'
 import { useViewingAddress } from './viewingAddress'
 import { useSelectedChain, SUPPORTED_CHAINS } from './selectedChain'
 import { downloadCsv } from './csv'
-import { Skeleton, useSlowLoading } from './ui'
+import { Skeleton, ErrorState, useSlowLoading } from './ui'
 
-interface BalanceRow {
-  symbol: string
-  amount: number | null
-  usdValue: number | null
-}
+const TOP_N_TOKENS = 20
 
 // Asks the connected injected wallet (MetaMask, Coinbase Wallet, etc.) to
 // add this token to its UI via EIP-747 `wallet_watchAsset`. This only
@@ -50,77 +49,33 @@ async function addTokenToWallet(params: {
   }
 }
 
-function TokenRow({
-  address,
-  chainId,
-  symbol,
-  tokenAddress,
-  decimals,
-  prices,
-  showAddToWallet,
-  onRow,
-}: {
-  address: `0x${string}`
-  chainId: number
-  symbol: string
-  tokenAddress: `0x${string}`
-  decimals: number
-  prices?: TokenPrices
-  showAddToWallet: boolean
-  onRow: (row: BalanceRow) => void
-}) {
-  const { data, isLoading, isError, refetch } = useReadContract({
-    address: tokenAddress,
-    abi: erc20Abi,
-    functionName: 'balanceOf',
-    args: [address],
-    chainId,
-  })
-
-  const amount = data !== undefined ? Number(formatUnits(data, decimals)) : null
-  const price = prices ? priceForSymbol(symbol, prices) : null
-  const usdValue = amount !== null && price !== null ? amount * price : null
-
-  useEffect(() => {
-    onRow({ symbol, amount, usdValue })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [amount, usdValue])
-
+function TokenRow({ token, showAddToWallet }: { token: TokenBalance; showAddToWallet: boolean }) {
   return (
     <div className="flex items-center justify-between py-1.5 text-sm">
       <span className="flex items-center gap-1.5 text-neutral-400">
-        {symbol}
+        {token.iconUrl && (
+          <img src={token.iconUrl} alt="" className="h-4 w-4 rounded-full" />
+        )}
+        <span title={token.name}>{token.symbol}</span>
         {showAddToWallet && (
           <button
             type="button"
-            title={`Add ${symbol} to wallet`}
-            onClick={() => addTokenToWallet({ address: tokenAddress, symbol, decimals })}
+            title={`Add ${token.symbol} to wallet`}
+            onClick={() => addTokenToWallet(token)}
             className="rounded border border-neutral-700 px-1 text-[10px] leading-4 text-neutral-500 hover:border-purple-500 hover:text-purple-300"
           >
             +wallet
           </button>
         )}
       </span>
-      {isLoading ? (
-        <Skeleton className="h-4 w-16" />
-      ) : isError ? (
-        <button
-          type="button"
-          onClick={() => refetch()}
-          className="text-xs text-red-400 hover:underline"
-        >
-          error — retry
-        </button>
-      ) : (
-        <span className="text-right">
-          <span className="font-mono text-neutral-100">
-            {amount !== null ? amount.toFixed(4) : '0.0000'}
-          </span>
-          <span className="ml-1.5 text-xs text-neutral-500">
-            {formatUsd(usdValue)}
-          </span>
+      <span className="text-right">
+        <span className="font-mono text-neutral-100">
+          {token.amount.toLocaleString(undefined, { maximumFractionDigits: 4 })}
         </span>
-      )}
+        <span className="ml-1.5 text-xs text-neutral-500">
+          {formatUsd(token.usdValue)}
+        </span>
+      </span>
     </div>
   )
 }
@@ -135,7 +90,6 @@ export default function Balances({
   const { chain: activeChain } = useAccount()
   const { switchChain, isPending } = useSwitchChain()
   const chainMeta = SUPPORTED_CHAINS.find((c) => c.id === chainId)!
-  const tokens = TOKENS_BY_CHAIN[chainId] ?? []
 
   const { data: prices, isLoading: pricesLoading, isError: pricesError, refetch: refetchPrices } = useQuery({
     queryKey: ['token-prices'],
@@ -144,57 +98,46 @@ export default function Balances({
     retry: 1,
   })
 
-  // rowsByKey holds the native row plus one entry per token, keyed by symbol
-  // so each row can report independently without clobbering others.
-  const [rowsByKey, setRowsByKey] = useState<Record<string, BalanceRow>>({})
-
-  // Reset immediately when switching chain or address — otherwise the old
-  // chain's rows (and USD total) would flash briefly before the new ones load.
-  useEffect(() => {
-    setRowsByKey({})
-  }, [chainId, address])
-
-  const setRow = (key: string, row: BalanceRow) =>
-    setRowsByKey((prev) =>
-      prev[key]?.amount === row.amount && prev[key]?.usdValue === row.usdValue
-        ? prev
-        : { ...prev, [key]: row },
-    )
-
-  const rows = Object.values(rowsByKey)
-  const total = rows.some((r) => r.usdValue !== null)
-    ? rows.reduce((sum: number, r) => sum + (r.usdValue ?? 0), 0)
-    : null
-
-  useEffect(() => {
-    onUsdTotal?.(total)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [total])
-
   const {
     data: native,
-    isLoading,
-    isError,
-    refetch,
-  } = useBalance({
-    address,
-    chainId,
+    isLoading: nativeLoading,
+    isError: nativeError,
+    refetch: refetchNative,
+  } = useBalance({ address, chainId })
+
+  const {
+    data: tokens,
+    isLoading: tokensLoading,
+    isError: tokensError,
+    error: tokensErrorObj,
+    refetch: refetchTokens,
+  } = useQuery({
+    queryKey: ['token-balances', chainId, address],
+    queryFn: () => fetchTokenBalances(chainId, address!),
+    enabled: Boolean(address),
+    staleTime: 30_000,
   })
 
-  const showSlowHint = useSlowLoading(isLoading, 1500)
+  const showSlowNativeHint = useSlowLoading(nativeLoading, 1500)
+  const showSlowTokensHint = useSlowLoading(tokensLoading, 1500)
 
   const nativeAmount = native ? Number(formatUnits(native.value, native.decimals)) : null
   const nativePrice = prices?.ethUsd ?? null
   const nativeUsd = nativeAmount !== null && nativePrice !== null ? nativeAmount * nativePrice : null
 
+  const topTokens = (tokens ?? []).slice(0, TOP_N_TOKENS)
+  const hiddenCount = (tokens?.length ?? 0) - topTokens.length
+
+  const knownUsdValues = [
+    ...(nativeUsd !== null ? [nativeUsd] : []),
+    ...topTokens.map((t) => t.usdValue).filter((v): v is number => v !== null),
+  ]
+  const total = knownUsdValues.length > 0 ? knownUsdValues.reduce((a, b) => a + b, 0) : null
+
   useEffect(() => {
-    setRow('native', {
-      symbol: `${chainMeta.nativeCurrency.symbol} (native)`,
-      amount: nativeAmount,
-      usdValue: nativeUsd,
-    })
+    onUsdTotal?.(total)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nativeAmount, nativeUsd, chainId])
+  }, [total])
 
   // "Active"/"Switch" only make sense for the real connected wallet — a
   // watch-only address isn't "on" any chain, it's just an address we read
@@ -202,15 +145,24 @@ export default function Balances({
   const isActive = isConnectedWallet && activeChain?.id === chainId
 
   function handleExport() {
-    if (!address || rows.length === 0) return
+    if (!address) return
+    const rows = [
+      {
+        chain: chainMeta.name,
+        symbol: `${chainMeta.nativeCurrency.symbol} (native)`,
+        amount: nativeAmount ?? '',
+        usdValue: nativeUsd !== null ? nativeUsd.toFixed(2) : '',
+      },
+      ...topTokens.map((t) => ({
+        chain: chainMeta.name,
+        symbol: t.symbol,
+        amount: t.amount,
+        usdValue: t.usdValue !== null ? t.usdValue.toFixed(2) : '',
+      })),
+    ]
     downloadCsv(
       `onthebitcoin-balances-${chainMeta.name.toLowerCase().replace(/\s+/g, '-')}.csv`,
-      rows.map((r) => ({
-        chain: chainMeta.name,
-        symbol: r.symbol,
-        amount: r.amount ?? '',
-        usdValue: r.usdValue !== null ? r.usdValue.toFixed(2) : '',
-      })),
+      rows,
     )
   }
 
@@ -237,11 +189,11 @@ export default function Balances({
             <h3 className="font-semibold text-neutral-100">{chainMeta.name}</h3>
             <p className="text-xs text-neutral-500">
               {formatUsd(total)} est. value
-              {pricesLoading && ' · loading prices…'}
+              {pricesLoading && ' · loading ETH price…'}
               {pricesError && (
                 <>
                   {' '}
-                  · prices unavailable —{' '}
+                  · ETH price unavailable —{' '}
                   <button
                     type="button"
                     onClick={() => refetchPrices()}
@@ -275,12 +227,12 @@ export default function Balances({
             <span className="text-neutral-400">
               {chainMeta.nativeCurrency.symbol} (native)
             </span>
-            {isLoading ? (
+            {nativeLoading ? (
               <Skeleton className="h-4 w-20" />
-            ) : isError ? (
+            ) : nativeError ? (
               <button
                 type="button"
-                onClick={() => refetch()}
+                onClick={() => refetchNative()}
                 className="text-xs text-red-400 hover:underline"
               >
                 error — retry
@@ -297,22 +249,53 @@ export default function Balances({
             )}
           </div>
 
-          {tokens.map((t) => (
-            <TokenRow
-              key={t.address}
-              address={address}
-              chainId={chainId}
-              symbol={t.symbol}
-              tokenAddress={t.address}
-              decimals={t.decimals}
-              prices={prices}
-              showAddToWallet={isActive}
-              onRow={(row) => setRow(t.symbol, row)}
+          {tokensLoading && (
+            <div className="space-y-1.5 py-2">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex items-center justify-between">
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
+              ))}
+              {showSlowTokensHint && (
+                <p className="pt-1 text-xs text-neutral-500">
+                  Loading token balances on {chainMeta.name}…
+                </p>
+              )}
+            </div>
+          )}
+
+          {tokensError && (
+            <ErrorState
+              message={`Could not load token balances: ${
+                tokensErrorObj instanceof Error ? tokensErrorObj.message : 'unknown error'
+              }`}
+              onRetry={() => refetchTokens()}
             />
-          ))}
+          )}
+
+          {!tokensLoading && !tokensError && topTokens.length === 0 && (
+            <p className="py-2 text-xs text-neutral-500">
+              No ERC-20 tokens found on {chainMeta.name} for this address.
+            </p>
+          )}
+
+          {!tokensLoading && !tokensError && topTokens.length > 0 && (
+            <>
+              {topTokens.map((t) => (
+                <TokenRow key={t.address} token={t} showAddToWallet={isActive} />
+              ))}
+              {hiddenCount > 0 && (
+                <p className="pt-1.5 text-xs text-neutral-600">
+                  +{hiddenCount} more token{hiddenCount === 1 ? '' : 's'} not shown
+                  (showing top {TOP_N_TOKENS} by USD value)
+                </p>
+              )}
+            </>
+          )}
         </div>
 
-        {isLoading && showSlowHint && (
+        {nativeLoading && showSlowNativeHint && (
           <p className="mt-2 text-xs text-neutral-500">
             Loading {chainMeta.name} balance…
           </p>
