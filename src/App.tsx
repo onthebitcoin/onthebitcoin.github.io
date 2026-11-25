@@ -25,6 +25,12 @@ export default function App() {
           <ConnectButton />
         </header>
 
+        <p className="mt-3 text-center text-xs text-neutral-500">
+          🔒 Read-only: this app never asks for, accesses, or stores your
+          private key or seed phrase. All it ever requests is your public
+          address, via your wallet's normal connect/sign-in prompt.
+        </p>
+
         <main className="mt-8 flex-1">
           {isConnected ? (
             <>
