@@ -1,0 +1,56 @@
+// Minimal OpenSea API v2 client for "NFTs owned by this account" lookups.
+// Needs an API key in the `x-api-key` header. Get one free at
+// https://docs.opensea.io/reference/api-keys (instant key, no signup) or
+// https://opensea.io/settings/developer for a longer-lived one, then put it
+// in .env.local as VITE_OPENSEA_API_KEY.
+const OPENSEA_API_BASE = 'https://api.opensea.io/api/v2'
+
+export interface OpenSeaNft {
+  identifier: string
+  collection: string
+  contract: string
+  name: string | null
+  imageUrl: string | null
+  openseaUrl: string
+}
+
+interface OpenSeaNftRaw {
+  identifier: string
+  collection: string
+  contract: string
+  name: string | null
+  image_url: string | null
+  display_image_url: string | null
+  opensea_url: string
+}
+
+export async function fetchOpenSeaNfts(
+  chain: 'base' | 'ethereum',
+  address: string,
+  apiKey: string,
+  limit = 24,
+): Promise<OpenSeaNft[]> {
+  if (!apiKey) {
+    throw new Error(
+      'Missing OpenSea API key. Set VITE_OPENSEA_API_KEY in .env.local.',
+    )
+  }
+
+  const res = await fetch(
+    `${OPENSEA_API_BASE}/chain/${chain}/account/${address}/nfts?limit=${limit}`,
+    { headers: { 'x-api-key': apiKey } },
+  )
+  if (!res.ok) {
+    throw new Error(`OpenSea request failed: ${res.status}`)
+  }
+  const data: { nfts?: OpenSeaNftRaw[] } = await res.json()
+
+  return (data.nfts ?? []).map((n) => ({
+    identifier: n.identifier,
+    collection: n.collection,
+    contract: n.contract,
+    name: n.name,
+    imageUrl: n.display_image_url ?? n.image_url ?? null,
+    openseaUrl: n.opensea_url,
+  }))
+}
