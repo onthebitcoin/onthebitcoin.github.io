@@ -13,6 +13,13 @@ across several chains from one screen.
 
 **Live demo:** [onthebitcoin.github.io](https://onthebitcoin.github.io/)
 
+> **For Upwork / client pitches:** "I built onthebitcoin, a read-only
+> multi-chain wallet dashboard (React, TypeScript, wagmi/viem, RainbowKit)
+> that tracks balances, transaction history, NFTs, and portfolio USD value
+> across Base, Ink, Optimism, and Arbitrum — plus watch-only support for any
+> address, CSV export, and clean loading/error states throughout. It's live,
+> open-source, and something I use myself daily to track my own wallets."
+
 ## Screenshot
 
 <!--
@@ -39,10 +46,15 @@ _Screenshot coming soon — see the live demo above in the meantime._
   link to the block explorer. Filter by Sent/Received per chain, export the
   full list to CSV.
 - **NFTs**: image grid of the connected wallet's NFTs on Base, Ethereum,
-  Optimism, and Arbitrum, linking out to their OpenSea listing.
+  Optimism, and Arbitrum, linking out to their OpenSea listing, with a search
+  box to filter by name/collection across all four chains at once.
 - **Export to CSV**: both the balances table (every chain, every token, with
   USD values) and each chain's activity table export with one click — handy
   for taxes, spreadsheets, or just backing up what you're tracking.
+- **Add token to wallet**: one click adds a known ERC-20 (USDC/WETH) to your
+  connected wallet's token list via EIP-747 `wallet_watchAsset` — display
+  only, cannot move funds or need approval, shown only for the chain your
+  wallet is actually active on.
 - **Dark mode, responsive** (desktop and mobile), with loading skeletons,
   empty states, and error states with a retry button throughout.
 - **No backend, no database** — every screen is a direct, client-side call to
@@ -193,6 +205,13 @@ token addresses, and the chain array in `Balances.tsx`/`Activity.tsx`/
   whichever address that is. Watched addresses are never passed to a
   connector, never asked to sign anything; "Switch chain" is hidden for them
   since chain-switching only means something for an actual connected wallet.
+- **"Add to wallet" is read-only too, despite touching the wallet.**
+  `wallet_watchAsset` (EIP-747) only asks the wallet to *display* a token —
+  it's the same permission level as adding a bookmark, not a transaction, so
+  it needs no confirmation dialog in this app and carries no custody risk.
+  It's only shown next to tokens on the chain the connected wallet is
+  actually active on (watch-only addresses never show it, since there's no
+  wallet to update).
 
 ## Possible next steps
 
@@ -200,6 +219,8 @@ token addresses, and the chain array in `Balances.tsx`/`Activity.tsx`/
   works fine, just not minimal).
 - Add Ink NFT support once a reliable Ink-native NFT indexer is available.
 - Light mode toggle (currently dark-only by design).
+- Quick links out to a swap aggregator (e.g. Jumper, LI.FI) for a held
+  token — pure navigation, no swap logic in-app.
 
 ## License
 

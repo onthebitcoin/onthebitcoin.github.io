@@ -1,5 +1,7 @@
-// NFT grid for the connected address (OpenSea API v2). Base + Ethereum for
-// now, per the brief ("chain Ethereum hoặc Base là đủ giai đoạn đầu").
+// NFT grid for the viewed address (OpenSea API v2). Base + Ethereum +
+// Optimism + Arbitrum. A single search box filters by name/collection
+// across all four chains at once.
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchOpenSeaNfts } from './opensea'
 import { useViewingAddress } from './viewingAddress'
@@ -70,10 +72,12 @@ function ChainNftGrid({
   chainId,
   label,
   address,
+  search,
 }: {
   chainId: 'base' | 'ethereum' | 'optimism' | 'arbitrum'
   label: string
   address: `0x${string}`
+  search: string
 }) {
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['opensea-nfts', chainId, address],
@@ -82,11 +86,34 @@ function ChainNftGrid({
     staleTime: 60_000,
   })
 
+  const filtered = useMemo(() => {
+    if (!data) return data
+    const q = search.trim().toLowerCase()
+    if (!q) return data
+    return data.filter(
+      (nft) =>
+        (nft.name ?? '').toLowerCase().includes(q) ||
+        nft.collection.toLowerCase().includes(q),
+    )
+  }, [data, search])
+
   if (!OPENSEA_API_KEY) {
     return (
       <div className="rounded-xl border border-dashed border-neutral-800 p-6 text-center text-sm text-neutral-500">
         Set VITE_OPENSEA_API_KEY in .env.local to load {label} NFTs. Get a
         free key at docs.opensea.io/reference/api-keys.
+      </div>
+    )
+  }
+
+  // Once loaded, a chain with zero NFTs to begin with is just noise once
+  // you're searching across all chains — skip rendering its empty header
+  // entirely rather than showing "No NFTs found" four times over.
+  if (!isLoading && !isError && (data?.length ?? 0) === 0) {
+    return (
+      <div>
+        <h3 className="mb-3 font-semibold text-neutral-100">{label} NFTs</h3>
+        <EmptyState message={`No NFTs found on ${label} for this address.`} />
       </div>
     )
   }
@@ -104,13 +131,13 @@ function ChainNftGrid({
         />
       )}
 
-      {!isLoading && !isError && (data?.length ?? 0) === 0 && (
-        <EmptyState message={`No NFTs found on ${label} for this address.`} />
+      {!isLoading && !isError && (filtered?.length ?? 0) === 0 && (data?.length ?? 0) > 0 && (
+        <EmptyState message={`No ${label} NFTs match "${search}".`} />
       )}
 
-      {!isLoading && !isError && (data?.length ?? 0) > 0 && (
+      {!isLoading && !isError && (filtered?.length ?? 0) > 0 && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {data!.map((nft) => (
+          {filtered!.map((nft) => (
             <NftCard key={`${nft.contract}-${nft.identifier}`} nft={nft} />
           ))}
         </div>
@@ -121,14 +148,30 @@ function ChainNftGrid({
 
 export default function Nfts() {
   const { address } = useViewingAddress()
+  const [search, setSearch] = useState('')
   if (!address) return null
 
   return (
     <section className="mt-8">
-      <h2 className="mb-3 text-lg font-semibold text-neutral-200">NFTs</h2>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold text-neutral-200">NFTs</h2>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name or collection…"
+          className="w-full max-w-xs rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-purple-500 focus:outline-none"
+        />
+      </div>
       <div className="space-y-6">
         {CHAINS.map((c) => (
-          <ChainNftGrid key={c.id} chainId={c.id} label={c.label} address={address} />
+          <ChainNftGrid
+            key={c.id}
+            chainId={c.id}
+            label={c.label}
+            address={address}
+            search={search}
+          />
         ))}
       </div>
     </section>

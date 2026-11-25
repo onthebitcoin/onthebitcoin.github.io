@@ -26,6 +26,34 @@ interface BalanceRow {
   usdValue: number | null
 }
 
+// Asks the connected injected wallet (MetaMask, Coinbase Wallet, etc.) to
+// add this token to its UI via EIP-747 `wallet_watchAsset`. This only
+// affects what the wallet *displays* — it cannot move funds, approve
+// anything, or need a private key, so it's safe to expose with one click.
+async function addTokenToWallet(params: {
+  address: `0x${string}`
+  symbol: string
+  decimals: number
+}) {
+  const ethereum = (window as unknown as { ethereum?: { request: (args: unknown) => Promise<unknown> } }).ethereum
+  if (!ethereum) return
+  try {
+    await ethereum.request({
+      method: 'wallet_watchAsset',
+      params: {
+        type: 'ERC20',
+        options: {
+          address: params.address,
+          symbol: params.symbol,
+          decimals: params.decimals,
+        },
+      },
+    })
+  } catch {
+    // User declined or wallet doesn't support it — not an app error, nothing to show.
+  }
+}
+
 function TokenRow({
   address,
   chainId,
@@ -33,6 +61,7 @@ function TokenRow({
   tokenAddress,
   decimals,
   prices,
+  showAddToWallet,
   onRow,
 }: {
   address: `0x${string}`
@@ -41,6 +70,7 @@ function TokenRow({
   tokenAddress: `0x${string}`
   decimals: number
   prices?: TokenPrices
+  showAddToWallet: boolean
   onRow: (row: BalanceRow) => void
 }) {
   const { data, isLoading, isError, refetch } = useReadContract({
@@ -62,7 +92,19 @@ function TokenRow({
 
   return (
     <div className="flex items-center justify-between py-1.5 text-sm">
-      <span className="text-neutral-400">{symbol}</span>
+      <span className="flex items-center gap-1.5 text-neutral-400">
+        {symbol}
+        {showAddToWallet && (
+          <button
+            type="button"
+            title={`Add ${symbol} to wallet`}
+            onClick={() => addTokenToWallet({ address: tokenAddress, symbol, decimals })}
+            className="rounded border border-neutral-700 px-1 text-[10px] leading-4 text-neutral-500 hover:border-purple-500 hover:text-purple-300"
+          >
+            +wallet
+          </button>
+        )}
+      </span>
       {isLoading ? (
         <Skeleton className="h-4 w-16" />
       ) : isError ? (
@@ -226,6 +268,7 @@ function ChainBalanceCard({
             tokenAddress={t.address}
             decimals={t.decimals}
             prices={prices}
+            showAddToWallet={isActive}
             onRow={(row) => setRow(t.symbol, { ...row, chain: chainMeta.name })}
           />
         ))}
