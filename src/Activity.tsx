@@ -6,14 +6,13 @@
 // click-to-expand detail view per transaction.
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { arbitrum, base, ink, optimism } from 'viem/chains'
 import { formatUnits } from 'viem'
 import { fetchRecentActivity, explorerTxUrl, type ActivityItem } from './blockscout'
 import { useViewingAddress } from './viewingAddress'
+import { useSelectedChain, SUPPORTED_CHAINS } from './selectedChain'
 import { downloadCsv } from './csv'
 import { Skeleton, ErrorState, EmptyState, useSlowLoading } from './ui'
 
-const CHAINS = [base, ink, optimism, arbitrum]
 const PAGE_SIZE = 20
 
 type DirectionFilter = 'all' | 'sent' | 'received'
@@ -156,8 +155,16 @@ function TxDetailModal({
   )
 }
 
-function ChainActivityTable({ chainId, address }: { chainId: number; address: `0x${string}` }) {
-  const chainMeta = CHAINS.find((c) => c.id === chainId)!
+function ChainActivityTable({
+  chainId,
+  address,
+  onSummary,
+}: {
+  chainId: number
+  address: `0x${string}`
+  onSummary?: (summary: { total: number; sentCount: number; receivedCount: number } | null) => void
+}) {
+  const chainMeta = SUPPORTED_CHAINS.find((c) => c.id === chainId)!
   const [filter, setFilter] = useState<DirectionFilter>('all')
   const [selectedTx, setSelectedTx] = useState<ActivityItem | null>(null)
 
@@ -226,6 +233,19 @@ function ChainActivityTable({ chainId, address }: { chainId: number; address: `0
       volume: Number(formatUnits(volumeWei, 18)),
     }
   }, [allItems])
+
+  useEffect(() => {
+    if (isLoading) {
+      onSummary?.(null)
+      return
+    }
+    onSummary?.(
+      allItems.length > 0
+        ? { total: summary.total, sentCount: summary.sentCount, receivedCount: summary.receivedCount }
+        : { total: 0, sentCount: 0, receivedCount: 0 },
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [summary, isLoading])
 
   function handleExport() {
     if (allItems.length === 0) return
@@ -392,8 +412,14 @@ function ChainActivityTable({ chainId, address }: { chainId: number; address: `0
   )
 }
 
-export default function Activity() {
+export default function Activity({
+  onSummary,
+}: {
+  onSummary?: (summary: { total: number; sentCount: number; receivedCount: number } | null) => void
+}) {
   const { address } = useViewingAddress()
+  const { chainId } = useSelectedChain()
+
   if (!address) return null
 
   return (
@@ -401,11 +427,7 @@ export default function Activity() {
       <h2 className="mb-3 text-lg font-semibold text-neutral-200">
         Recent activity
       </h2>
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {CHAINS.map((c) => (
-          <ChainActivityTable key={c.id} chainId={c.id} address={address} />
-        ))}
-      </div>
+      <ChainActivityTable chainId={chainId} address={address} onSummary={onSummary} />
     </section>
   )
 }

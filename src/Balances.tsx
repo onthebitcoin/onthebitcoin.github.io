@@ -1,26 +1,22 @@
-// Multi-chain balance section: native + known token balances per chain,
-// with an easy "Switch to this chain" action, plus an estimated USD value
-// per chain, a portfolio-wide total (CoinGecko prices, best-effort), and a
-// CSV export of every row currently shown.
+// Single-chain balance section: native + known token balances for whichever
+// chain is currently selected (ChainTabs / selectedChain.tsx), with an easy
+// "Switch to this chain" action, an estimated USD value, and a CSV export.
 // Note: wagmi v3's useBalance only returns native balance ({decimals, symbol,
 // value} as bigint, no ERC20 `token` option and no `.formatted`). ERC20 token
 // balances are read directly via useReadContract + viem's erc20Abi, formatted
 // with formatUnits.
 import { useEffect, useState } from 'react'
 import { useAccount, useBalance, useReadContract, useSwitchChain } from 'wagmi'
-import { arbitrum, base, ink, optimism } from 'viem/chains'
 import { erc20Abi, formatUnits } from 'viem'
 import { useQuery } from '@tanstack/react-query'
 import { TOKENS_BY_CHAIN } from './tokens'
 import { fetchTokenPrices, formatUsd, priceForSymbol, type TokenPrices } from './prices'
 import { useViewingAddress } from './viewingAddress'
+import { useSelectedChain, SUPPORTED_CHAINS } from './selectedChain'
 import { downloadCsv } from './csv'
 import { Skeleton, useSlowLoading } from './ui'
 
-const SUPPORTED_CHAINS = [base, ink, optimism, arbitrum]
-
 interface BalanceRow {
-  chain: string
   symbol: string
   amount: number | null
   usdValue: number | null
@@ -86,7 +82,7 @@ function TokenRow({
   const usdValue = amount !== null && price !== null ? amount * price : null
 
   useEffect(() => {
-    onRow({ chain: '', symbol, amount, usdValue })
+    onRow({ symbol, amount, usdValue })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [amount, usdValue])
 
@@ -129,29 +125,34 @@ function TokenRow({
   )
 }
 
-function ChainBalanceCard({
-  chainId,
-  address,
-  isConnectedWallet,
-  prices,
+export default function Balances({
   onUsdTotal,
-  onRows,
 }: {
-  chainId: number
-  address: `0x${string}`
-  isConnectedWallet: boolean
-  prices?: TokenPrices
-  onUsdTotal: (chainId: number, usd: number | null) => void
-  onRows: (chainId: number, rows: BalanceRow[]) => void
+  onUsdTotal?: (usd: number | null) => void
 }) {
+  const { address, isConnectedWallet } = useViewingAddress()
+  const { chainId } = useSelectedChain()
   const { chain: activeChain } = useAccount()
   const { switchChain, isPending } = useSwitchChain()
   const chainMeta = SUPPORTED_CHAINS.find((c) => c.id === chainId)!
   const tokens = TOKENS_BY_CHAIN[chainId] ?? []
 
+  const { data: prices, isLoading: pricesLoading, isError: pricesError, refetch: refetchPrices } = useQuery({
+    queryKey: ['token-prices'],
+    queryFn: fetchTokenPrices,
+    staleTime: 60_000,
+    retry: 1,
+  })
+
   // rowsByKey holds the native row plus one entry per token, keyed by symbol
   // so each row can report independently without clobbering others.
   const [rowsByKey, setRowsByKey] = useState<Record<string, BalanceRow>>({})
+
+  // Reset immediately when switching chain or address — otherwise the old
+  // chain's rows (and USD total) would flash briefly before the new ones load.
+  useEffect(() => {
+    setRowsByKey({})
+  }, [chainId, address])
 
   const setRow = (key: string, row: BalanceRow) =>
     setRowsByKey((prev) =>
@@ -166,10 +167,9 @@ function ChainBalanceCard({
     : null
 
   useEffect(() => {
-    onUsdTotal(chainId, total)
-    onRows(chainId, rows)
+    onUsdTotal?.(total)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows.map((r) => `${r.symbol}:${r.amount}:${r.usdValue}`).join('|')])
+  }, [total])
 
   const {
     data: native,
@@ -181,134 +181,32 @@ function ChainBalanceCard({
     chainId,
   })
 
+  const showSlowHint = useSlowLoading(isLoading, 1500)
+
   const nativeAmount = native ? Number(formatUnits(native.value, native.decimals)) : null
   const nativePrice = prices?.ethUsd ?? null
   const nativeUsd = nativeAmount !== null && nativePrice !== null ? nativeAmount * nativePrice : null
-  const showSlowHint = useSlowLoading(isLoading, 1500)
 
   useEffect(() => {
     setRow('native', {
-      chain: chainMeta.name,
       symbol: `${chainMeta.nativeCurrency.symbol} (native)`,
       amount: nativeAmount,
       usdValue: nativeUsd,
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nativeAmount, nativeUsd])
+  }, [nativeAmount, nativeUsd, chainId])
 
   // "Active"/"Switch" only make sense for the real connected wallet — a
   // watch-only address isn't "on" any chain, it's just an address we read
   // balances for, so we hide chain-switching chrome for it entirely.
   const isActive = isConnectedWallet && activeChain?.id === chainId
 
-  return (
-    <div
-      className={`rounded-xl border p-4 transition ${
-        isActive
-          ? 'border-purple-500/50 bg-purple-500/5'
-          : 'border-neutral-800 bg-neutral-900'
-      }`}
-    >
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="font-semibold text-neutral-100">{chainMeta.name}</h3>
-          <p className="text-xs text-neutral-500">
-            {formatUsd(total)} est. value
-          </p>
-        </div>
-        {isConnectedWallet &&
-          (isActive ? (
-            <span className="rounded-full bg-purple-500/20 px-2.5 py-1 text-xs text-purple-300">
-              Active
-            </span>
-          ) : (
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={() => switchChain({ chainId })}
-              className="rounded-lg border border-neutral-700 px-2.5 py-1 text-xs text-neutral-300 hover:border-purple-500 hover:text-purple-300 disabled:opacity-50"
-            >
-              {isPending ? 'Switching…' : 'Switch'}
-            </button>
-          ))}
-      </div>
-
-      <div className="mt-3 border-t border-neutral-800 pt-3">
-        <div className="flex items-center justify-between py-1.5 text-sm">
-          <span className="text-neutral-400">
-            {chainMeta.nativeCurrency.symbol} (native)
-          </span>
-          {isLoading ? (
-            <Skeleton className="h-4 w-20" />
-          ) : isError ? (
-            <button
-              type="button"
-              onClick={() => refetch()}
-              className="text-xs text-red-400 hover:underline"
-            >
-              error — retry
-            </button>
-          ) : (
-            <span className="text-right">
-              <span className="font-mono text-neutral-100">
-                {nativeAmount !== null ? nativeAmount.toFixed(5) : '0.00000'}
-              </span>
-              <span className="ml-1.5 text-xs text-neutral-500">
-                {formatUsd(nativeUsd)}
-              </span>
-            </span>
-          )}
-        </div>
-
-        {tokens.map((t) => (
-          <TokenRow
-            key={t.address}
-            address={address}
-            chainId={chainId}
-            symbol={t.symbol}
-            tokenAddress={t.address}
-            decimals={t.decimals}
-            prices={prices}
-            showAddToWallet={isActive}
-            onRow={(row) => setRow(t.symbol, { ...row, chain: chainMeta.name })}
-          />
-        ))}
-      </div>
-      {showSlowHint && (
-        <p className="mt-2 text-xs text-neutral-500">
-          Loading {chainMeta.name} balance…
-        </p>
-      )}
-    </div>
-  )
-}
-
-export default function Balances() {
-  const { address, isConnectedWallet } = useViewingAddress()
-  const [totalsByChain, setTotalsByChain] = useState<Record<number, number | null>>({})
-  const [rowsByChain, setRowsByChain] = useState<Record<number, BalanceRow[]>>({})
-
-  const { data: prices, isLoading: pricesLoading, isError: pricesError, refetch: refetchPrices } = useQuery({
-    queryKey: ['token-prices'],
-    queryFn: fetchTokenPrices,
-    staleTime: 60_000,
-    retry: 1,
-  })
-
-  if (!address) return null
-
-  const knownTotals = Object.values(totalsByChain).filter(
-    (v): v is number => v !== null && v !== undefined,
-  )
-  const grandTotal = knownTotals.length > 0 ? knownTotals.reduce((a, b) => a + b, 0) : null
-
   function handleExport() {
-    const allRows = Object.values(rowsByChain).flat()
-    if (allRows.length === 0) return
+    if (!address || rows.length === 0) return
     downloadCsv(
-      'onthebitcoin-balances.csv',
-      allRows.map((r) => ({
-        chain: r.chain,
+      `onthebitcoin-balances-${chainMeta.name.toLowerCase().replace(/\s+/g, '-')}.csv`,
+      rows.map((r) => ({
+        chain: chainMeta.name,
         symbol: r.symbol,
         amount: r.amount ?? '',
         usdValue: r.usdValue !== null ? r.usdValue.toFixed(2) : '',
@@ -316,62 +214,109 @@ export default function Balances() {
     )
   }
 
+  if (!address) return null
+
   return (
     <section className="mt-8">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-lg font-semibold text-neutral-200">Balances</h2>
-        <p className="flex items-center gap-3 text-sm text-neutral-400">
-          <span>
-            Portfolio total:{' '}
-            <span className="font-mono text-neutral-100">
-              {formatUsd(grandTotal)}
-            </span>
-            {pricesLoading && (
-              <span className="ml-2 text-xs text-neutral-500">
-                (loading prices…)
-              </span>
-            )}
-            {pricesError && (
-              <span className="ml-2 text-xs text-neutral-500">
-                (prices unavailable —{' '}
-                <button
-                  type="button"
-                  onClick={() => refetchPrices()}
-                  className="underline hover:text-purple-300"
-                >
-                  retry
-                </button>
-                )
-              </span>
-            )}
-          </span>
-          <button
-            type="button"
-            onClick={handleExport}
-            className="rounded-lg border border-neutral-700 px-2 py-1 text-xs text-neutral-300 hover:border-purple-500 hover:text-purple-300"
-          >
-            Export CSV
-          </button>
-        </p>
+        <h2 className="text-lg font-semibold text-neutral-200">
+          Balances — {chainMeta.name}
+        </h2>
+        <button
+          type="button"
+          onClick={handleExport}
+          className="rounded-lg border border-neutral-700 px-2 py-1 text-xs text-neutral-300 hover:border-purple-500 hover:text-purple-300"
+        >
+          Export CSV
+        </button>
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {SUPPORTED_CHAINS.map((c) => (
-          <ChainBalanceCard
-            key={c.id}
-            chainId={c.id}
-            address={address}
-            isConnectedWallet={isConnectedWallet}
-            prices={prices}
-            onUsdTotal={(chainId, usd) =>
-              setTotalsByChain((prev) =>
-                prev[chainId] === usd ? prev : { ...prev, [chainId]: usd },
-              )
-            }
-            onRows={(chainId, rows) =>
-              setRowsByChain((prev) => ({ ...prev, [chainId]: rows }))
-            }
-          />
-        ))}
+
+      <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-neutral-100">{chainMeta.name}</h3>
+            <p className="text-xs text-neutral-500">
+              {formatUsd(total)} est. value
+              {pricesLoading && ' · loading prices…'}
+              {pricesError && (
+                <>
+                  {' '}
+                  · prices unavailable —{' '}
+                  <button
+                    type="button"
+                    onClick={() => refetchPrices()}
+                    className="underline hover:text-purple-300"
+                  >
+                    retry
+                  </button>
+                </>
+              )}
+            </p>
+          </div>
+          {isConnectedWallet &&
+            (isActive ? (
+              <span className="rounded-full bg-purple-500/20 px-2.5 py-1 text-xs text-purple-300">
+                Active
+              </span>
+            ) : (
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => switchChain({ chainId })}
+                className="rounded-lg border border-neutral-700 px-2.5 py-1 text-xs text-neutral-300 hover:border-purple-500 hover:text-purple-300 disabled:opacity-50"
+              >
+                {isPending ? 'Switching…' : 'Switch wallet to this chain'}
+              </button>
+            ))}
+        </div>
+
+        <div className="mt-3 border-t border-neutral-800 pt-3">
+          <div className="flex items-center justify-between py-1.5 text-sm">
+            <span className="text-neutral-400">
+              {chainMeta.nativeCurrency.symbol} (native)
+            </span>
+            {isLoading ? (
+              <Skeleton className="h-4 w-20" />
+            ) : isError ? (
+              <button
+                type="button"
+                onClick={() => refetch()}
+                className="text-xs text-red-400 hover:underline"
+              >
+                error — retry
+              </button>
+            ) : (
+              <span className="text-right">
+                <span className="font-mono text-neutral-100">
+                  {nativeAmount !== null ? nativeAmount.toFixed(5) : '0.00000'}
+                </span>
+                <span className="ml-1.5 text-xs text-neutral-500">
+                  {formatUsd(nativeUsd)}
+                </span>
+              </span>
+            )}
+          </div>
+
+          {tokens.map((t) => (
+            <TokenRow
+              key={t.address}
+              address={address}
+              chainId={chainId}
+              symbol={t.symbol}
+              tokenAddress={t.address}
+              decimals={t.decimals}
+              prices={prices}
+              showAddToWallet={isActive}
+              onRow={(row) => setRow(t.symbol, row)}
+            />
+          ))}
+        </div>
+
+        {isLoading && showSlowHint && (
+          <p className="mt-2 text-xs text-neutral-500">
+            Loading {chainMeta.name} balance…
+          </p>
+        )}
       </div>
     </section>
   )

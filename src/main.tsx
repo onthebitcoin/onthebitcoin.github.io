@@ -6,6 +6,7 @@ import './index.css'
 import App from './App.tsx'
 import { wagmiConfig } from './wagmi.ts'
 import { ViewingAddressProvider } from './viewingAddress.tsx'
+import { SelectedChainProvider } from './selectedChain.tsx'
 
 const queryClient = new QueryClient()
 
@@ -19,7 +20,9 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <RainbowKitProvider theme={darkTheme()}>
         <ViewingAddressProvider>
-          <App />
+          <SelectedChainProvider>
+            <App />
+          </SelectedChainProvider>
         </ViewingAddressProvider>
       </RainbowKitProvider>
     </QueryClientProvider>

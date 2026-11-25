@@ -28,31 +28,44 @@ _Watch-only view of a real public address — no wallet connection needed to see
 
 ## What it does
 
-- **Connect any wallet** (MetaMask, Coinbase Wallet, Rainbow, WalletConnect...)
-  via RainbowKit — or skip connecting entirely and **watch any address
-  read-only** by pasting it in. Switch between your connected wallet and any
-  number of saved addresses at any time; everything below (balances,
-  activity, NFTs) follows whichever one is active.
-- **Multi-chain balances**: native ETH plus USDC/WETH balances on Base, Ink,
-  Optimism, and Arbitrum, with a one-click chain switch, plus an estimated
-  USD value per chain and a portfolio-wide total (CoinGecko prices).
-- **Recent activity**: last transactions on Base, Ink, Optimism, and
-  Arbitrum — time, action (Sent/Received + decoded method name), value, and a
-  link to the block explorer. A summary line (loaded count, sent/received
-  split, rough native-token volume) sits above each chain's table, and
-  clicking any row opens a detail view (full hash, full timestamp, method,
-  from/to, status). Loads 20 at a time with a "Load more" button, so a very
-  active wallet never freezes the page rendering hundreds of rows at once.
-  Filter by Sent/Received per chain, export the full loaded list to CSV.
-- **NFTs**: image grid of the connected wallet's NFTs on Base, Ethereum,
-  Optimism, and Arbitrum, linking out to their OpenSea listing, with a search
-  box to filter by name/collection across all four chains at once, and
-  "Load more" pagination (OpenSea's own cursor) for large collections —
-  each card gets its own image skeleton and a graceful fallback if an image
-  fails to load.
-- **Export to CSV**: both the balances table (every chain, every token, with
-  USD values) and each chain's activity table export with one click — handy
-  for taxes, spreadsheets, or just backing up what you're tracking.
+- **Pick one chain at a time.** A tab bar (Base / Ink / Optimism / Arbitrum)
+  controls everything below it — Balances, Activity, NFTs, and Wallet
+  Analysis all scope to whichever chain is selected, defaulting to Base.
+  Only that one chain's data is fetched and rendered, so the page stays
+  light and focused instead of loading four chains in parallel. Your choice
+  is remembered across refreshes (`localStorage`).
+- **Watch any address with one click.** A prominent "👁 Watch address"
+  button sits right next to Connect Wallet — paste a 0x address, no wallet
+  connection needed at all. Switch between your connected wallet and any
+  number of saved addresses at any time (the wallet-chip row below the
+  header); everything on the page follows whichever one is active.
+- **Wallet analysis at a glance.** Once an address and chain are selected, a
+  summary panel shows the estimated USD value, transactions loaded,
+  sent/received split, and NFT count for that chain, plus simple heuristic
+  tags ("Active wallet", "Low activity", "NFT holder", "Mostly
+  receiving"/"Mostly sending") computed from what's already loaded — no
+  extra fetches, just a read-only view over the same data the sections
+  below already have.
+- **Balances**: native ETH plus USDC/WETH balance for the selected chain,
+  with a one-click chain switch for the connected wallet, an estimated USD
+  value (CoinGecko prices), and CSV export.
+- **Recent activity**: last transactions on the selected chain — time,
+  action (Sent/Received + decoded method name), value, and a link to the
+  block explorer. A summary line (loaded count, sent/received split, rough
+  native-token volume) sits above the table, and clicking any row opens a
+  detail view (full hash, full timestamp, method, from/to, status). Loads
+  20 at a time with a "Load more" button, so a very active wallet never
+  freezes the page rendering hundreds of rows at once. Filter by
+  Sent/Received, export the full loaded list to CSV.
+- **NFTs**: image grid of the selected chain's NFTs (Base, Optimism, and
+  Arbitrum via OpenSea; Ink shows a clear "not supported yet" message
+  instead of a broken fetch, since there's no reliable public NFT indexer
+  for it), with a search box to filter by name/collection, and "Load more"
+  pagination (OpenSea's own cursor) for large collections — each card gets
+  its own image skeleton and a graceful fallback if an image fails to load.
+- **Export to CSV**: both the balances table and the activity table for
+  the currently selected chain export with one click — handy for taxes,
+  spreadsheets, or just backing up what you're tracking.
 - **Copy address + QR code**: next to whichever address you're viewing
   (connected or watch-only), a Copy button with "Copied!" feedback and a
   QR code generated entirely client-side (the `qrcode` package — the
@@ -62,13 +75,14 @@ _Watch-only view of a real public address — no wallet connection needed to see
   no swap logic lives in this app at all.
 - **Add token to wallet**: one click adds a known ERC-20 (USDC/WETH) to your
   connected wallet's token list via EIP-747 `wallet_watchAsset` — display
-  only, cannot move funds or need approval, shown only for the chain your
-  wallet is actually active on.
+  only, cannot move funds or need approval, shown only when the connected
+  wallet is actually on the selected chain.
 - **Dark mode, responsive** (desktop and mobile), with loading skeletons,
   empty states, and error states with a retry button throughout. Any fetch
   that's still running after ~1.2–1.5s also shows a specific text hint (e.g.
   "Loading activity on Base…", "Fetching NFT metadata for Base…") so a slow
-  network never just looks frozen.
+  network never just looks frozen — including right after switching chains,
+  where every section resets to a clean loading/skeleton state immediately.
 - **Resilient networking.** Every external call (Blockscout, OpenSea,
   CoinGecko) goes through a shared helper (`net.ts`) with a hard timeout and
   one quiet retry on timeout/network errors (never on a real 4xx, since
@@ -110,17 +124,21 @@ src/
   opensea.ts       OpenSea API v2 client (NFTs by account)
   prices.ts        CoinGecko client for ETH/USDC prices (portfolio USD value)
   viewingAddress.tsx  multi-wallet state: connected wallet vs watched addresses (localStorage)
-  WalletSwitcher.tsx  UI to add/remove/switch watched addresses
+  selectedChain.tsx    single-chain-at-a-time state (localStorage), SUPPORTED_CHAINS list
+  WalletSwitcher.tsx   wallet-chip row: switch between connected/watched addresses
+  WatchAddressButton.tsx  prominent "Watch address" button + add-address popover
+  ChainTabs.tsx        chain picker tabs (Base/Ink/Optimism/Arbitrum)
+  WalletAnalysis.tsx   combined summary panel (USD value, tx count, sent/received, NFTs, tags)
   csv.ts           tiny client-side CSV export helper (no dependency)
   net.ts           shared fetch helper: timeout + one quiet retry, typed TimeoutError/HttpError
   ui.tsx           shared Skeleton / ErrorState / EmptyState + useSlowLoading hook
   AddressActions.tsx  Copy-to-clipboard + client-side QR code for the viewed address
   ExternalTools.tsx   quick links out to Jumper / LI.FI / Uniswap (nav only, no swap logic)
-  Balances.tsx     native + token balances section, chain switcher
-  Activity.tsx     recent transactions table, per chain
-  Nfts.tsx         NFT grid, per chain
+  Balances.tsx     balance section for the selected chain, chain switcher
+  Activity.tsx     recent transactions table for the selected chain
+  Nfts.tsx         NFT grid for the selected chain
   App.tsx          page layout, header/footer, onthebitcoin branding, wires sections together
-  main.tsx         React root, wagmi/query/RainbowKit providers
+  main.tsx         React root, wagmi/query/RainbowKit/ViewingAddress/SelectedChain providers
 ```
 
 ## Run locally
@@ -184,19 +202,18 @@ only WalletConnect itself is disabled.
 
 ## Supported chains
 
-| Chain | Chain ID | Explorer used |
-|---|---|---|
-| Base | 8453 | base.blockscout.com |
-| Ink (Inkonchain) | 57073 | explorer.inkonchain.com |
-| Optimism | 10 | explorer.optimism.io |
-| Arbitrum One | 42161 | arbitrum.blockscout.com |
-| Ethereum (NFTs only) | 1 | opensea.io |
+| Chain | Chain ID | Explorer used | NFTs (OpenSea) |
+|---|---|---|---|
+| Base | 8453 | base.blockscout.com | ✅ |
+| Ink (Inkonchain) | 57073 | explorer.inkonchain.com | not yet (no public indexer) |
+| Optimism | 10 | explorer.optimism.io | ✅ |
+| Arbitrum One | 42161 | arbitrum.blockscout.com | ✅ |
 
 All four L2s share the same Blockscout v2 API schema, so `blockscout.ts`
 handles activity for all of them with one typed client — adding a chain is
 just a new entry in its `BLOCKSCOUT_CHAINS` map (plus `tokens.ts` for known
-token addresses, and the chain array in `Balances.tsx`/`Activity.tsx`/
-`Nfts.tsx`).
+token addresses, `selectedChain.tsx`'s `SUPPORTED_CHAINS` list, and
+`Nfts.tsx`'s OpenSea slug map if the chain has NFT support).
 
 ## Notable implementation decisions
 
@@ -219,7 +236,8 @@ token addresses, and the chain array in `Balances.tsx`/`Activity.tsx`/
 - **Portfolio USD value is best-effort, never blocking.** Prices come from
   CoinGecko's free public endpoint (no key). If that request fails, balances
   still display normally — only the `$` figures fall back to "—" and a small
-  "(prices unavailable)" note appears next to the portfolio total. WETH/WETH9
+  "prices unavailable — retry" note appears next to the chain's estimated
+  value. WETH/WETH9
   are priced 1:1 with ETH (correct assumption for a wrapped-native token);
   USDC uses CoinGecko's own USDC price rather than a hardcoded $1, since
   stablecoins do de-peg briefly in practice.
@@ -259,6 +277,27 @@ token addresses, and the chain array in `Balances.tsx`/`Activity.tsx`/
   connected or watch-only — with no code path that requires a live
   connector. QR generation is fully client-side specifically so pasting a
   watch-only address never sends it to a third party just to render a code.
+- **Single-chain-at-a-time is a deliberate performance and clarity choice.**
+  `selectedChain.tsx` holds exactly one chain id; Balances/Activity/Nfts all
+  read it and fetch/render only that chain, instead of the four-chain grid
+  the app used to show. This keeps API calls and rendered DOM proportional
+  to "one chain" rather than "every chain", and avoids the cognitive load
+  of four simultaneous balance cards and activity tables.
+- **Wallet Analysis reads, never re-fetches.** `App.tsx` holds three small
+  pieces of state (`usdTotal`, `activitySummary`, `nftCount`) that
+  Balances/Activity/Nfts report up via callback props as their own queries
+  resolve — `WalletAnalysis.tsx` is a pure display component over these,
+  with zero network calls of its own.
+- **Avoided a parent/child effect race when resetting on chain change.** An
+  earlier version had `App.tsx` reset all three analysis values to `null`
+  in its own `useEffect` keyed on `[chainId, address]` — but React fires a
+  child's effects before its parent's in the same commit, so that reset
+  would run *after* a child (e.g. `Nfts.tsx` reporting `0` for Ink, which
+  has no NFT support) had already reported its real value, silently
+  clobbering it back to `null`. Fixed by making each section fully
+  self-sufficient: it reports `null` while its own query is loading for the
+  new chain/address, and the real value once resolved — no parent-level
+  reset needed or present anymore.
 
 ## Possible next steps
 

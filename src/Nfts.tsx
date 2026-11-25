@@ -1,20 +1,27 @@
-// NFT grid for the viewed address (OpenSea API v2). Base + Ethereum +
-// Optimism + Arbitrum. A single search box filters by name/collection
-// across all four chains at once; each chain paginates independently via
-// OpenSea's cursor so a large collection loads smoothly instead of all at
-// once.
+// NFT grid for the viewed address (OpenSea API v2), scoped to whichever
+// chain is currently selected (ChainTabs / selectedChain.tsx). Ink has no
+// reliable OpenSea coverage yet, so that chain shows a clear "not supported"
+// message instead of a broken fetch. Search filters by name/collection;
+// pagination uses OpenSea's own cursor so a large collection loads smoothly
+// instead of all at once.
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { arbitrum, base, optimism } from 'viem/chains'
 import { fetchOpenSeaNfts, type OpenSeaNft } from './opensea'
 import { useViewingAddress } from './viewingAddress'
+import { useSelectedChain, SUPPORTED_CHAINS } from './selectedChain'
 import { Skeleton, ErrorState, EmptyState, useSlowLoading } from './ui'
 
-const CHAINS: { id: 'base' | 'ethereum' | 'optimism' | 'arbitrum'; label: string }[] = [
-  { id: 'base', label: 'Base' },
-  { id: 'ethereum', label: 'Ethereum' },
-  { id: 'optimism', label: 'Optimism' },
-  { id: 'arbitrum', label: 'Arbitrum' },
-]
+type OpenSeaChainSlug = 'base' | 'optimism' | 'arbitrum'
+
+// Maps our 4 EVM chain ids to OpenSea's chain slug. `null` means OpenSea
+// doesn't reliably index this chain yet (Ink) — handled as an explicit
+// "not supported" state rather than silently failing.
+const OPENSEA_SLUG_BY_CHAIN: Record<number, OpenSeaChainSlug | null> = {
+  [base.id]: 'base',
+  [optimism.id]: 'optimism',
+  [arbitrum.id]: 'arbitrum',
+}
 
 const OPENSEA_API_KEY = import.meta.env.VITE_OPENSEA_API_KEY || ''
 
@@ -88,15 +95,17 @@ function NftGridSkeleton() {
 }
 
 function ChainNftGrid({
-  chainId,
+  chainSlug,
   label,
   address,
   search,
+  onCount,
 }: {
-  chainId: 'base' | 'ethereum' | 'optimism' | 'arbitrum'
+  chainSlug: OpenSeaChainSlug
   label: string
   address: `0x${string}`
   search: string
+  onCount?: (count: number | null) => void
 }) {
   const [extraPages, setExtraPages] = useState<OpenSeaNft[][]>([])
   const [cursor, setCursor] = useState<string | null>(null)
@@ -104,8 +113,8 @@ function ChainNftGrid({
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null)
 
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['opensea-nfts', chainId, address],
-    queryFn: () => fetchOpenSeaNfts(chainId, address, OPENSEA_API_KEY),
+    queryKey: ['opensea-nfts', chainSlug, address],
+    queryFn: () => fetchOpenSeaNfts(chainSlug, address, OPENSEA_API_KEY),
     enabled: Boolean(OPENSEA_API_KEY),
     staleTime: 60_000,
   })
@@ -114,7 +123,7 @@ function ChainNftGrid({
     setExtraPages([])
     setCursor(null)
     setLoadMoreError(null)
-  }, [chainId, address])
+  }, [chainSlug, address])
 
   const showSlowHint = useSlowLoading(isLoading, 1200)
 
@@ -124,12 +133,17 @@ function ChainNftGrid({
   )
   const nextCursor = extraPages.length > 0 ? cursor : (data?.next ?? null)
 
+  useEffect(() => {
+    onCount?.(isLoading ? null : (OPENSEA_API_KEY ? allNfts.length : null))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allNfts.length, isLoading])
+
   async function handleLoadMore() {
     if (!nextCursor) return
     setIsLoadingMore(true)
     setLoadMoreError(null)
     try {
-      const page = await fetchOpenSeaNfts(chainId, address, OPENSEA_API_KEY, 24, nextCursor)
+      const page = await fetchOpenSeaNfts(chainSlug, address, OPENSEA_API_KEY, 24, nextCursor)
       setExtraPages((prev) => [...prev, page.nfts])
       setCursor(page.next)
     } catch (err) {
@@ -158,22 +172,12 @@ function ChainNftGrid({
     )
   }
 
-  // Once loaded, a chain with zero NFTs to begin with is just noise once
-  // you're searching across all chains — skip rendering its empty header
-  // entirely rather than showing "No NFTs found" four times over.
   if (!isLoading && !isError && allNfts.length === 0) {
-    return (
-      <div>
-        <h3 className="mb-3 font-semibold text-neutral-100">{label} NFTs</h3>
-        <EmptyState message={`No NFTs found on ${label} for this address.`} />
-      </div>
-    )
+    return <EmptyState message={`No NFTs found on ${label} for this address.`} />
   }
 
   return (
     <div>
-      <h3 className="mb-3 font-semibold text-neutral-100">{label} NFTs</h3>
-
       {isLoading && (
         <>
           <NftGridSkeleton />
@@ -225,34 +229,60 @@ function ChainNftGrid({
   )
 }
 
-export default function Nfts() {
+export default function Nfts({
+  onCount,
+}: {
+  onCount?: (count: number | null) => void
+}) {
   const { address } = useViewingAddress()
+  const { chainId } = useSelectedChain()
   const [search, setSearch] = useState('')
+  const chainMeta = SUPPORTED_CHAINS.find((c) => c.id === chainId)!
+  const openSeaSlug = OPENSEA_SLUG_BY_CHAIN[chainId] ?? null
+
+  // Ink (and any future chain without OpenSea coverage) reports a definite
+  // "0" rather than "unknown" — there's deliberately no overlapping reset
+  // here for supported chains, since ChainNftGrid already reports null
+  // while loading and the real count once resolved; firing both would race.
+  useEffect(() => {
+    if (!openSeaSlug) onCount?.(0)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openSeaSlug, chainId, address])
+
   if (!address) return null
 
   return (
     <section className="mt-8">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold text-neutral-200">NFTs</h2>
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name or collection…"
-          className="w-full max-w-xs rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-purple-500 focus:outline-none"
-        />
-      </div>
-      <div className="space-y-6">
-        {CHAINS.map((c) => (
-          <ChainNftGrid
-            key={c.id}
-            chainId={c.id}
-            label={c.label}
-            address={address}
-            search={search}
+        <h2 className="text-lg font-semibold text-neutral-200">
+          NFTs — {chainMeta.name}
+        </h2>
+        {openSeaSlug && (
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name or collection…"
+            className="w-full max-w-xs rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-purple-500 focus:outline-none"
           />
-        ))}
+        )}
       </div>
+
+      {openSeaSlug ? (
+        <ChainNftGrid
+          chainSlug={openSeaSlug}
+          label={chainMeta.name}
+          address={address}
+          search={search}
+          onCount={onCount}
+        />
+      ) : (
+        <div className="rounded-xl border border-dashed border-neutral-800 p-6 text-center text-sm text-neutral-500">
+          NFT lookup isn't available for {chainMeta.name} yet — no reliable
+          public indexer for this chain. Switch to Base, Optimism, or
+          Arbitrum to see NFTs.
+        </div>
+      )}
     </section>
   )
 }

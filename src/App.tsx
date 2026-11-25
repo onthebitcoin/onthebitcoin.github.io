@@ -1,20 +1,53 @@
-// App shell. Step 1: wallet connect. Step 2: multi-chain balances
-// (Balances.tsx). Step 3: activity table (Activity.tsx). Step 4: OpenSea
-// NFTs (Nfts.tsx). Step 5+: polish, branding (onthebitcoin), multi-wallet
-// (WalletSwitcher.tsx + viewingAddress.tsx).
+// App shell. Single-chain-at-a-time UX: ChainTabs picks one chain
+// (selectedChain.tsx); Balances/Activity/Nfts each render only that chain's
+// data and lift a small summary up via callback so WalletAnalysis can show
+// a combined view without re-fetching anything itself. Multi-wallet
+// (WatchAddressButton.tsx + WalletSwitcher.tsx + viewingAddress.tsx) works
+// identically whether a real wallet is connected or not.
+import { useState } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount } from 'wagmi'
 import Balances from './Balances'
 import Activity from './Activity'
 import Nfts from './Nfts'
 import WalletSwitcher from './WalletSwitcher'
+import WatchAddressButton from './WatchAddressButton'
 import ExternalTools from './ExternalTools'
 import AddressActions from './AddressActions'
+import ChainTabs from './ChainTabs'
+import WalletAnalysis, { type AnalysisData } from './WalletAnalysis'
 import { useViewingAddress } from './viewingAddress'
+import { useSelectedChain, SUPPORTED_CHAINS } from './selectedChain'
 
 export default function App() {
   const { chain } = useAccount()
   const { address, isConnectedWallet } = useViewingAddress()
+  const { chainId } = useSelectedChain()
+  const chainMeta = SUPPORTED_CHAINS.find((c) => c.id === chainId)!
+
+  // Summary numbers lifted from Balances/Activity/Nfts for the Wallet
+  // Analysis panel. Each section is responsible for reporting null while
+  // it's loading its own data for the newly selected chain/address, and the
+  // real value once resolved — deliberately NOT reset here too, since that
+  // used to race with a child's own effect (children's effects fire before
+  // a parent's in the same commit, so a parent-level reset could silently
+  // clobber a child's freshly-reported value, e.g. NFT count on Ink always
+  // showing "unknown" instead of "0").
+  const [usdTotal, setUsdTotal] = useState<number | null>(null)
+  const [activitySummary, setActivitySummary] = useState<{
+    total: number
+    sentCount: number
+    receivedCount: number
+  } | null>(null)
+  const [nftCount, setNftCount] = useState<number | null>(null)
+
+  const analysisData: AnalysisData = {
+    usdTotal,
+    txCount: activitySummary?.total ?? null,
+    sentCount: activitySummary?.sentCount ?? null,
+    receivedCount: activitySummary?.receivedCount ?? null,
+    nftCount,
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-neutral-950 text-neutral-100">
@@ -36,7 +69,10 @@ export default function App() {
               </p>
             </div>
           </div>
-          <ConnectButton />
+          <div className="flex flex-wrap items-center gap-2">
+            <WatchAddressButton />
+            <ConnectButton />
+          </div>
         </header>
 
         <p className="mt-3 text-center text-xs text-neutral-500">
@@ -78,9 +114,14 @@ export default function App() {
                   </>
                 )}
               </div>
-              <Balances />
-              <Activity />
-              <Nfts />
+
+              <ChainTabs />
+
+              <WalletAnalysis chainName={chainMeta.name} data={analysisData} />
+
+              <Balances onUsdTotal={setUsdTotal} />
+              <Activity onSummary={setActivitySummary} />
+              <Nfts onCount={setNftCount} />
             </>
           ) : (
             <div className="space-y-6">
@@ -100,7 +141,7 @@ export default function App() {
                   for tracking your own wallets.
                 </p>
                 <p className="mx-auto mt-2 max-w-md text-sm text-neutral-500">
-                  Connect a wallet, or add an address to watch above, to see
+                  Connect a wallet, or click "Watch address" above, to see
                   balances and activity on Base, Ink, Optimism &amp;
                   Arbitrum, plus OpenSea NFTs — all read-only, nothing leaves
                   your browser.
