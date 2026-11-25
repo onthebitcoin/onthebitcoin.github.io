@@ -1,13 +1,21 @@
 # Ink & Base Activity Dashboard
 
 A local-first, read-only dashboard for tracking wallet activity across
-**Base**, **Ink (Inkonchain)**, and NFTs via **OpenSea**. Built as a portfolio
-piece to demonstrate practical Web3 frontend work (wallet connect, multi-chain
-data, third-party API integration), and used day-to-day by the author to
-track their own airdrop-farming and NFT wallets.
+**Base**, **Ink (Inkonchain)**, and NFTs via **OpenSea**. Built to demonstrate
+practical Web3 frontend work — wallet connect, multi-chain data, and
+third-party API integration — and used in daily personal workflow to monitor
+balances and NFT holdings across several chains from one screen.
 
 ![tech](https://img.shields.io/badge/stack-React%20%2B%20TypeScript%20%2B%20Vite-blue)
 ![tech](https://img.shields.io/badge/web3-wagmi%20%2B%20viem%20%2B%20RainbowKit-purple)
+![tech](https://img.shields.io/badge/license-MIT-green)
+
+**Live demo:** _add your Vercel URL here after deploying (see Deployment below)_
+
+## Screenshot
+
+_Add a screenshot or short screen recording here once deployed — this is the
+single highest-impact addition for a portfolio README._
 
 ## What it does
 
@@ -71,6 +79,15 @@ npm run build
 npm run preview
 ```
 
+## Deployment (Vercel)
+
+1. Push this repo to GitHub (see below).
+2. Go to [vercel.com/new](https://vercel.com/new), import the repo — Vercel
+   auto-detects the Vite framework preset, no config needed.
+3. Add the two environment variables from `.env.example` in the Vercel
+   project settings (`VITE_WALLETCONNECT_PROJECT_ID`, `VITE_OPENSEA_API_KEY`).
+4. Deploy. Every push to `main` redeploys automatically.
+
 ## Environment variables (`.env.local`)
 
 ```bash
@@ -119,5 +136,9 @@ still works via injected wallets; only WalletConnect itself is disabled.
 - Code-split RainbowKit's wallet/locale chunks (currently one ~900KB bundle;
   works fine, just not minimal).
 - Support tracking multiple saved wallet addresses (not just the connected
-  one), matching the author's multi-wallet airdrop-farming workflow.
+  one), useful for anyone managing several wallets across chains.
 - Add Ink NFT support once a reliable Ink-native NFT indexer is available.
+
+## License
+
+MIT — free to use, fork, or adapt.
