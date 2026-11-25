@@ -1,10 +1,11 @@
-# Ink & Base Activity Dashboard
+# onthebitcoin — Base & Ink Wallet Dashboard
 
-A local-first, read-only dashboard for tracking wallet activity across
-**Base**, **Ink (Inkonchain)**, and NFTs via **OpenSea**. Built to demonstrate
-practical Web3 frontend work — wallet connect, multi-chain data, and
-third-party API integration — and used in daily personal workflow to monitor
-balances and NFT holdings across several chains from one screen.
+A local-first, read-only wallet dashboard by **onthebitcoin**, tracking
+balances, activity, and NFTs across **Base**, **Ink (Inkonchain)**, and
+**OpenSea**. Built to demonstrate practical Web3 frontend work — wallet
+connect, multi-chain data, and third-party API integration — and used in
+daily personal workflow to monitor wallet holdings across several chains from
+one screen.
 
 ![tech](https://img.shields.io/badge/stack-React%20%2B%20TypeScript%20%2B%20Vite-blue)
 ![tech](https://img.shields.io/badge/web3-wagmi%20%2B%20viem%20%2B%20RainbowKit-purple)
@@ -18,7 +19,7 @@ balances and NFT holdings across several chains from one screen.
   Add a real screenshot (connected wallet, with balances/activity/NFTs
   populated) here before publishing to a portfolio — a populated screenshot
   is the single highest-impact addition to this README.
-  Markdown: ![Dashboard screenshot](./docs/screenshot.png)
+  Markdown: ![onthebitcoin dashboard screenshot](./docs/screenshot.png)
 -->
 
 _Screenshot coming soon — see the live demo above in the meantime._
@@ -58,8 +59,8 @@ _Screenshot coming soon — see the live demo above in the meantime._
 ```
 public/
   favicon.ico, icons/           favicon + apple-touch-icon, generated from images/otb-r1c.png
-  images/otb-r1c.png            square logo (header + favicon source)
-  images/onthebitcoin-banner@2x.png   wide brand banner (shown pre-connect)
+  images/otb-r1c.png            onthebitcoin logo (header + favicon source)
+  images/onthebitcoin-banner@2x.png   onthebitcoin brand banner (shown pre-connect)
 src/
   wagmi.ts         wagmi/RainbowKit config: chains, connectors, WalletConnect id
   tokens.ts        known ERC-20 addresses per chain (Base, Ink)
@@ -69,7 +70,7 @@ src/
   Balances.tsx     native + token balances section, chain switcher
   Activity.tsx     recent transactions table, per chain
   Nfts.tsx         NFT grid, per chain
-  App.tsx          page layout, header/footer, branding, wires sections together
+  App.tsx          page layout, header/footer, onthebitcoin branding, wires sections together
   main.tsx         React root, wagmi/query/RainbowKit providers
 ```
 
@@ -127,8 +128,10 @@ VITE_OPENSEA_API_KEY=your_key_here
 ```
 
 Without `VITE_OPENSEA_API_KEY` the NFT section shows a clear placeholder
-instead of silently failing. Without `VITE_WALLETCONNECT_PROJECT_ID` everything
-still works via injected wallets; only WalletConnect itself is disabled.
+instead of silently failing (and distinguishes "key missing" from "key
+rejected / expired" if one is set but invalid). Without
+`VITE_WALLETCONNECT_PROJECT_ID` everything still works via injected wallets;
+only WalletConnect itself is disabled.
 
 ## Supported chains
 
@@ -162,6 +165,8 @@ still works via injected wallets; only WalletConnect itself is disabled.
 - Support tracking multiple saved wallet addresses (not just the connected
   one), useful for anyone managing several wallets across chains.
 - Add Ink NFT support once a reliable Ink-native NFT indexer is available.
+- Add Optimism and Arbitrum (both have public Blockscout instances and
+  OpenSea coverage already confirmed to work without extra setup).
 
 ## License
 

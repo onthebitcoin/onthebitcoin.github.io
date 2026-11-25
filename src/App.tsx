@@ -1,6 +1,6 @@
 // App shell. Step 1: wallet connect. Step 2: multi-chain balances
 // (Balances.tsx). Step 3: activity table (Activity.tsx). Step 4: OpenSea
-// NFTs (Nfts.tsx). Step 5: polish (footer, shared ui.tsx states, branding).
+// NFTs (Nfts.tsx). Step 5+: polish, branding (onthebitcoin).
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount } from 'wagmi'
 import Balances from './Balances'
@@ -22,10 +22,11 @@ export default function App() {
             />
             <div>
               <h1 className="text-2xl font-bold tracking-tight">
-                Ink & Base Activity Dashboard
+                onthebitcoin
               </h1>
               <p className="mt-1 text-sm text-neutral-400">
-                Track wallet activity across Base, Ink and OpenSea.
+                Base &amp; Ink wallet dashboard — balances, activity &amp;
+                NFTs in one place.
               </p>
             </div>
           </div>
@@ -63,14 +64,25 @@ export default function App() {
                 />
               </div>
               <div className="rounded-xl border border-dashed border-neutral-800 p-10 text-center text-neutral-400">
-                Connect a wallet to see Base/Ink balances, recent activity and
-                OpenSea NFTs.
+                <p className="text-neutral-300">
+                  A free tool by{' '}
+                  <span className="font-semibold text-neutral-100">
+                    onthebitcoin
+                  </span>{' '}
+                  for tracking your own wallets.
+                </p>
+                <p className="mx-auto mt-2 max-w-md text-sm text-neutral-500">
+                  Connect a wallet to see Base/Ink balances, recent activity
+                  and OpenSea NFTs — all read-only, nothing leaves your
+                  browser.
+                </p>
               </div>
             </div>
           )}
         </main>
 
         <footer className="mt-10 border-t border-neutral-800 pt-4 text-center text-xs text-neutral-500">
+          A product by <span className="text-neutral-300">onthebitcoin</span>.
           Built with React, wagmi &amp; RainbowKit. Data from Blockscout
           (Base &amp; Ink) and the OpenSea API. Local-first — no backend, no
           data leaves your browser except direct calls to those public APIs.
