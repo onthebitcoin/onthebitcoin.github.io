@@ -36,9 +36,13 @@ _Screenshot coming soon — see the live demo above in the meantime._
   USD value per chain and a portfolio-wide total (CoinGecko prices).
 - **Recent activity**: last transactions on Base, Ink, Optimism, and
   Arbitrum — time, action (Sent/Received + decoded method name), value, and a
-  link to the block explorer.
+  link to the block explorer. Filter by Sent/Received per chain, export the
+  full list to CSV.
 - **NFTs**: image grid of the connected wallet's NFTs on Base, Ethereum,
   Optimism, and Arbitrum, linking out to their OpenSea listing.
+- **Export to CSV**: both the balances table (every chain, every token, with
+  USD values) and each chain's activity table export with one click — handy
+  for taxes, spreadsheets, or just backing up what you're tracking.
 - **Dark mode, responsive** (desktop and mobile), with loading skeletons,
   empty states, and error states with a retry button throughout.
 - **No backend, no database** — every screen is a direct, client-side call to
@@ -74,6 +78,7 @@ src/
   prices.ts        CoinGecko client for ETH/USDC prices (portfolio USD value)
   viewingAddress.tsx  multi-wallet state: connected wallet vs watched addresses (localStorage)
   WalletSwitcher.tsx  UI to add/remove/switch watched addresses
+  csv.ts           tiny client-side CSV export helper (no dependency)
   ui.tsx           shared Skeleton / ErrorState / EmptyState components
   Balances.tsx     native + token balances section, chain switcher
   Activity.tsx     recent transactions table, per chain
@@ -193,9 +198,8 @@ token addresses, and the chain array in `Balances.tsx`/`Activity.tsx`/
 
 - Code-split RainbowKit's wallet/locale chunks (currently one ~900KB bundle;
   works fine, just not minimal).
-- Export balances/activity to CSV.
-- Filter activity by transaction type.
 - Add Ink NFT support once a reliable Ink-native NFT indexer is available.
+- Light mode toggle (currently dark-only by design).
 
 ## License
 
