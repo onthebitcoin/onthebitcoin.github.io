@@ -1,8 +1,8 @@
 // NFT grid for the connected address (OpenSea API v2). Base + Ethereum for
 // now, per the brief ("chain Ethereum hoặc Base là đủ giai đoạn đầu").
 import { useQuery } from '@tanstack/react-query'
-import { useAccount } from 'wagmi'
 import { fetchOpenSeaNfts } from './opensea'
+import { useViewingAddress } from './viewingAddress'
 import { Skeleton, ErrorState, EmptyState } from './ui'
 
 const CHAINS: { id: 'base' | 'ethereum' | 'optimism' | 'arbitrum'; label: string }[] = [
@@ -66,13 +66,19 @@ function NftGridSkeleton() {
   )
 }
 
-function ChainNftGrid({ chainId, label }: { chainId: 'base' | 'ethereum' | 'optimism' | 'arbitrum'; label: string }) {
-  const { address } = useAccount()
-
+function ChainNftGrid({
+  chainId,
+  label,
+  address,
+}: {
+  chainId: 'base' | 'ethereum' | 'optimism' | 'arbitrum'
+  label: string
+  address: `0x${string}`
+}) {
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['opensea-nfts', chainId, address],
-    queryFn: () => fetchOpenSeaNfts(chainId, address!, OPENSEA_API_KEY),
-    enabled: Boolean(address) && Boolean(OPENSEA_API_KEY),
+    queryFn: () => fetchOpenSeaNfts(chainId, address, OPENSEA_API_KEY),
+    enabled: Boolean(OPENSEA_API_KEY),
     staleTime: 60_000,
   })
 
@@ -114,15 +120,15 @@ function ChainNftGrid({ chainId, label }: { chainId: 'base' | 'ethereum' | 'opti
 }
 
 export default function Nfts() {
-  const { isConnected } = useAccount()
-  if (!isConnected) return null
+  const { address } = useViewingAddress()
+  if (!address) return null
 
   return (
     <section className="mt-8">
       <h2 className="mb-3 text-lg font-semibold text-neutral-200">NFTs</h2>
       <div className="space-y-6">
         {CHAINS.map((c) => (
-          <ChainNftGrid key={c.id} chainId={c.id} label={c.label} />
+          <ChainNftGrid key={c.id} chainId={c.id} label={c.label} address={address} />
         ))}
       </div>
     </section>

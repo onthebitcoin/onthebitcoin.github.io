@@ -1,10 +1,10 @@
 // Recent activity (transaction history) table, per chain, backed by
 // Blockscout's public v2 API (works for both Base and Ink, no API key).
 import { useQuery } from '@tanstack/react-query'
-import { useAccount } from 'wagmi'
 import { arbitrum, base, ink, optimism } from 'viem/chains'
 import { formatUnits } from 'viem'
 import { fetchRecentActivity, explorerTxUrl } from './blockscout'
+import { useViewingAddress } from './viewingAddress'
 import { Skeleton, ErrorState, EmptyState } from './ui'
 
 const CHAINS = [base, ink, optimism, arbitrum]
@@ -40,14 +40,12 @@ function TableSkeleton() {
   )
 }
 
-function ChainActivityTable({ chainId }: { chainId: number }) {
-  const { address } = useAccount()
+function ChainActivityTable({ chainId, address }: { chainId: number; address: `0x${string}` }) {
   const chainMeta = CHAINS.find((c) => c.id === chainId)!
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['activity', chainId, address],
-    queryFn: () => fetchRecentActivity(chainId, address!, 10),
-    enabled: Boolean(address),
+    queryFn: () => fetchRecentActivity(chainId, address, 10),
     staleTime: 30_000,
   })
 
@@ -124,8 +122,8 @@ function ChainActivityTable({ chainId }: { chainId: number }) {
 }
 
 export default function Activity() {
-  const { isConnected } = useAccount()
-  if (!isConnected) return null
+  const { address } = useViewingAddress()
+  if (!address) return null
 
   return (
     <section className="mt-8">
@@ -134,7 +132,7 @@ export default function Activity() {
       </h2>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {CHAINS.map((c) => (
-          <ChainActivityTable key={c.id} chainId={c.id} />
+          <ChainActivityTable key={c.id} chainId={c.id} address={address} />
         ))}
       </div>
     </section>

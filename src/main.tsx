@@ -5,6 +5,7 @@ import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit'
 import './index.css'
 import App from './App.tsx'
 import { wagmiConfig } from './wagmi.ts'
+import { ViewingAddressProvider } from './viewingAddress.tsx'
 
 const queryClient = new QueryClient()
 
@@ -17,7 +18,9 @@ createRoot(document.getElementById('root')!).render(
   <WagmiProvider config={wagmiConfig}>
     <QueryClientProvider client={queryClient}>
       <RainbowKitProvider theme={darkTheme()}>
-        <App />
+        <ViewingAddressProvider>
+          <App />
+        </ViewingAddressProvider>
       </RainbowKitProvider>
     </QueryClientProvider>
   </WagmiProvider>,

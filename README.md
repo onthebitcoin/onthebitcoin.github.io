@@ -27,7 +27,10 @@ _Screenshot coming soon — see the live demo above in the meantime._
 ## What it does
 
 - **Connect any wallet** (MetaMask, Coinbase Wallet, Rainbow, WalletConnect...)
-  via RainbowKit.
+  via RainbowKit — or skip connecting entirely and **watch any address
+  read-only** by pasting it in. Switch between your connected wallet and any
+  number of saved addresses at any time; everything below (balances,
+  activity, NFTs) follows whichever one is active.
 - **Multi-chain balances**: native ETH plus USDC/WETH balances on Base, Ink,
   Optimism, and Arbitrum, with a one-click chain switch, plus an estimated
   USD value per chain and a portfolio-wide total (CoinGecko prices).
@@ -69,6 +72,8 @@ src/
   blockscout.ts    Blockscout API v2 client (recent activity, 4 chains)
   opensea.ts       OpenSea API v2 client (NFTs by account)
   prices.ts        CoinGecko client for ETH/USDC prices (portfolio USD value)
+  viewingAddress.tsx  multi-wallet state: connected wallet vs watched addresses (localStorage)
+  WalletSwitcher.tsx  UI to add/remove/switch watched addresses
   ui.tsx           shared Skeleton / ErrorState / EmptyState components
   Balances.tsx     native + token balances section, chain switcher
   Activity.tsx     recent transactions table, per chain
@@ -177,13 +182,19 @@ token addresses, and the chain array in `Balances.tsx`/`Activity.tsx`/
   are priced 1:1 with ETH (correct assumption for a wrapped-native token);
   USDC uses CoinGecko's own USDC price rather than a hardcoded $1, since
   stablecoins do de-peg briefly in practice.
+- **Multi-wallet is watch-only by construction.** `viewingAddress.tsx` just
+  resolves one `address` — either the connected wallet's, or a saved one from
+  `localStorage` — and every section reads balances/activity/NFTs for
+  whichever address that is. Watched addresses are never passed to a
+  connector, never asked to sign anything; "Switch chain" is hidden for them
+  since chain-switching only means something for an actual connected wallet.
 
 ## Possible next steps
 
 - Code-split RainbowKit's wallet/locale chunks (currently one ~900KB bundle;
   works fine, just not minimal).
-- Support tracking multiple saved wallet addresses (not just the connected
-  one), useful for anyone managing several wallets across chains.
+- Export balances/activity to CSV.
+- Filter activity by transaction type.
 - Add Ink NFT support once a reliable Ink-native NFT indexer is available.
 
 ## License

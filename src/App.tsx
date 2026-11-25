@@ -1,14 +1,18 @@
 // App shell. Step 1: wallet connect. Step 2: multi-chain balances
 // (Balances.tsx). Step 3: activity table (Activity.tsx). Step 4: OpenSea
-// NFTs (Nfts.tsx). Step 5+: polish, branding (onthebitcoin).
+// NFTs (Nfts.tsx). Step 5+: polish, branding (onthebitcoin), multi-wallet
+// (WalletSwitcher.tsx + viewingAddress.tsx).
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount } from 'wagmi'
 import Balances from './Balances'
 import Activity from './Activity'
 import Nfts from './Nfts'
+import WalletSwitcher from './WalletSwitcher'
+import { useViewingAddress } from './viewingAddress'
 
 export default function App() {
-  const { address, isConnected, chain } = useAccount()
+  const { chain } = useAccount()
+  const { address, isConnectedWallet } = useViewingAddress()
 
   return (
     <div className="flex min-h-screen flex-col bg-neutral-950 text-neutral-100">
@@ -37,18 +41,35 @@ export default function App() {
           🔒 Read-only — never accesses your private key or seed phrase.
         </p>
 
+        <WalletSwitcher />
+
         <main className="mt-8 flex-1">
-          {isConnected ? (
+          {address ? (
             <>
               <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 text-sm">
-                <p className="text-neutral-400">Connected address</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-neutral-400">Viewing address</p>
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-xs ${
+                      isConnectedWallet
+                        ? 'bg-emerald-500/20 text-emerald-300'
+                        : 'bg-neutral-700/50 text-neutral-300'
+                    }`}
+                  >
+                    {isConnectedWallet ? 'Connected' : 'Watch-only'}
+                  </span>
+                </div>
                 <p className="mt-1 break-all font-mono text-neutral-100">
                   {address}
                 </p>
-                <p className="mt-3 text-neutral-400">Current chain</p>
-                <p className="mt-1 text-neutral-100">
-                  {chain ? `${chain.name} (id ${chain.id})` : 'Unknown'}
-                </p>
+                {isConnectedWallet && (
+                  <>
+                    <p className="mt-3 text-neutral-400">Current chain</p>
+                    <p className="mt-1 text-neutral-100">
+                      {chain ? `${chain.name} (id ${chain.id})` : 'Unknown'}
+                    </p>
+                  </>
+                )}
               </div>
               <Balances />
               <Activity />
@@ -72,9 +93,10 @@ export default function App() {
                   for tracking your own wallets.
                 </p>
                 <p className="mx-auto mt-2 max-w-md text-sm text-neutral-500">
-                  Connect a wallet to see balances and activity on Base, Ink,
-                  Optimism &amp; Arbitrum, plus OpenSea NFTs — all read-only,
-                  nothing leaves your browser.
+                  Connect a wallet, or add an address to watch above, to see
+                  balances and activity on Base, Ink, Optimism &amp;
+                  Arbitrum, plus OpenSea NFTs — all read-only, nothing leaves
+                  your browser.
                 </p>
               </div>
             </div>

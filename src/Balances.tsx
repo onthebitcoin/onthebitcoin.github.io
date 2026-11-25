@@ -12,6 +12,7 @@ import { erc20Abi, formatUnits } from 'viem'
 import { useQuery } from '@tanstack/react-query'
 import { TOKENS_BY_CHAIN } from './tokens'
 import { fetchTokenPrices, formatUsd, priceForSymbol, type TokenPrices } from './prices'
+import { useViewingAddress } from './viewingAddress'
 import { Skeleton } from './ui'
 
 const SUPPORTED_CHAINS = [base, ink, optimism, arbitrum]
@@ -79,14 +80,18 @@ function TokenRow({
 
 function ChainBalanceCard({
   chainId,
+  address,
+  isConnectedWallet,
   prices,
   onUsdTotal,
 }: {
   chainId: number
+  address: `0x${string}`
+  isConnectedWallet: boolean
   prices?: TokenPrices
   onUsdTotal: (chainId: number, usd: number | null) => void
 }) {
-  const { address, chain: activeChain } = useAccount()
+  const { chain: activeChain } = useAccount()
   const { switchChain, isPending } = useSwitchChain()
   const chainMeta = SUPPORTED_CHAINS.find((c) => c.id === chainId)!
   const tokens = TOKENS_BY_CHAIN[chainId] ?? []
@@ -126,7 +131,10 @@ function ChainBalanceCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nativeUsd])
 
-  const isActive = activeChain?.id === chainId
+  // "Active"/"Switch" only make sense for the real connected wallet — a
+  // watch-only address isn't "on" any chain, it's just an address we read
+  // balances for, so we hide chain-switching chrome for it entirely.
+  const isActive = isConnectedWallet && activeChain?.id === chainId
 
   return (
     <div
@@ -143,20 +151,21 @@ function ChainBalanceCard({
             {formatUsd(total)} est. value
           </p>
         </div>
-        {isActive ? (
-          <span className="rounded-full bg-purple-500/20 px-2.5 py-1 text-xs text-purple-300">
-            Active
-          </span>
-        ) : (
-          <button
-            type="button"
-            disabled={isPending}
-            onClick={() => switchChain({ chainId })}
-            className="rounded-lg border border-neutral-700 px-2.5 py-1 text-xs text-neutral-300 hover:border-purple-500 hover:text-purple-300 disabled:opacity-50"
-          >
-            {isPending ? 'Switching…' : 'Switch'}
-          </button>
-        )}
+        {isConnectedWallet &&
+          (isActive ? (
+            <span className="rounded-full bg-purple-500/20 px-2.5 py-1 text-xs text-purple-300">
+              Active
+            </span>
+          ) : (
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => switchChain({ chainId })}
+              className="rounded-lg border border-neutral-700 px-2.5 py-1 text-xs text-neutral-300 hover:border-purple-500 hover:text-purple-300 disabled:opacity-50"
+            >
+              {isPending ? 'Switching…' : 'Switch'}
+            </button>
+          ))}
       </div>
 
       <div className="mt-3 border-t border-neutral-800 pt-3">
@@ -186,26 +195,25 @@ function ChainBalanceCard({
           )}
         </div>
 
-        {address &&
-          tokens.map((t) => (
-            <TokenRow
-              key={t.address}
-              address={address}
-              chainId={chainId}
-              symbol={t.symbol}
-              tokenAddress={t.address}
-              decimals={t.decimals}
-              prices={prices}
-              onUsdValue={(usd) => setPart(t.symbol, usd)}
-            />
-          ))}
+        {tokens.map((t) => (
+          <TokenRow
+            key={t.address}
+            address={address}
+            chainId={chainId}
+            symbol={t.symbol}
+            tokenAddress={t.address}
+            decimals={t.decimals}
+            prices={prices}
+            onUsdValue={(usd) => setPart(t.symbol, usd)}
+          />
+        ))}
       </div>
     </div>
   )
 }
 
 export default function Balances() {
-  const { isConnected } = useAccount()
+  const { address, isConnectedWallet } = useViewingAddress()
   const [totalsByChain, setTotalsByChain] = useState<Record<number, number | null>>({})
 
   const { data: prices, isError: pricesError } = useQuery({
@@ -215,7 +223,7 @@ export default function Balances() {
     retry: 1,
   })
 
-  if (!isConnected) return null
+  if (!address) return null
 
   const knownTotals = Object.values(totalsByChain).filter(
     (v): v is number => v !== null && v !== undefined,
@@ -243,6 +251,8 @@ export default function Balances() {
           <ChainBalanceCard
             key={c.id}
             chainId={c.id}
+            address={address}
+            isConnectedWallet={isConnectedWallet}
             prices={prices}
             onUsdTotal={(chainId, usd) =>
               setTotalsByChain((prev) =>
