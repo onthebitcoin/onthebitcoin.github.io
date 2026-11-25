@@ -264,6 +264,15 @@ NFT support.
   whichever address that is. Watched addresses are never passed to a
   connector, never asked to sign anything; "Switch chain" is hidden for them
   since chain-switching only means something for an actual connected wallet.
+- **Switching chain/address remounts Balances, Activity and Nfts together,
+  grouped under one keyed `<Fragment>` in `App.tsx`.** Earlier, each had its
+  own manual "reset on chain change" effect; those raced in subtle ways —
+  a lingering old-chain instance could still fire its summary callback
+  after a switch and leave Wallet Analysis showing one chain's tags next to
+  a different chain's numbers (reported bug: "NFT holder" tag with "NFTs 0"
+  shown together). A single key over the whole group forces a clean
+  unmount+mount of all three at once instead of coordinating separate
+  resets, which removes that whole category of stale-callback bugs.
 - **"Add to wallet" is read-only too, despite touching the wallet.**
   `wallet_watchAsset` (EIP-747) only asks the wallet to *display* a token —
   it's the same permission level as adding a bookmark, not a transaction, so

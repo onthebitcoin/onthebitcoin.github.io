@@ -4,7 +4,7 @@
 // a combined view without re-fetching anything itself. Multi-wallet
 // (WatchAddressButton.tsx + WalletSwitcher.tsx + viewingAddress.tsx) works
 // identically whether a real wallet is connected or not.
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount } from 'wagmi'
 import Balances from './Balances'
@@ -26,13 +26,8 @@ export default function App() {
   const chainMeta = SUPPORTED_CHAINS.find((c) => c.id === chainId)!
 
   // Summary numbers lifted from Balances/Activity/Nfts for the Wallet
-  // Analysis panel. Each section is responsible for reporting null while
-  // it's loading its own data for the newly selected chain/address, and the
-  // real value once resolved — deliberately NOT reset here too, since that
-  // used to race with a child's own effect (children's effects fire before
-  // a parent's in the same commit, so a parent-level reset could silently
-  // clobber a child's freshly-reported value, e.g. NFT count on Ink always
-  // showing "unknown" instead of "0").
+  // Analysis panel. Each section reports null while loading its own data,
+  // and the real value once resolved.
   const [usdTotal, setUsdTotal] = useState<number | null>(null)
   const [activitySummary, setActivitySummary] = useState<{
     total: number
@@ -40,6 +35,15 @@ export default function App() {
     receivedCount: number
   } | null>(null)
   const [nftCount, setNftCount] = useState<number | null>(null)
+
+  // No parent-level reset effect here: Balances/Activity/Nfts are grouped
+  // in a single keyed Fragment below, so switching chain/address fully
+  // remounts all three together and they naturally start at null/real
+  // values on their own. A parent reset effect was tried here before and
+  // had to be removed again — it ran in the same commit as the freshly
+  // mounted children and could clobber a child's real first value (e.g.
+  // Nfts deliberately reports a definite 0 for Ink, not null/unknown, and
+  // the parent's reset fired right after and overwrote it back to null).
 
   const analysisData: AnalysisData = {
     usdTotal,
@@ -119,9 +123,26 @@ export default function App() {
 
               <WalletAnalysis chainName={chainMeta.name} data={analysisData} />
 
-              <Balances onUsdTotal={setUsdTotal} />
-              <Activity onSummary={setActivitySummary} />
-              <Nfts onCount={setNftCount} />
+              {/* One key on a single wrapping Fragment, not on each child
+                  individually — giving 3 sibling elements of DIFFERENT
+                  component types the exact same key string caused React
+                  to occasionally mount the new chain's Balances/Activity
+                  as EXTRA siblings alongside the old chain's (confirmed via
+                  React DevTools fiber inspection: two live fibers with
+                  different keys coexisting under the same parent), instead
+                  of cleanly replacing them. A single key boundary avoids
+                  that edge case entirely, forces one clean
+                  unmount+remount of the whole group together, and is what
+                  actually fixes "Wallet Analysis shows stale numbers from
+                  the previous chain" — the old bug: a lingering old-chain
+                  instance's onSummary/onUsdTotal/onCount callback could
+                  still fire after switching chains and clobber the new
+                  chain's just-reported values. */}
+              <Fragment key={`${chainId}-${address}`}>
+                <Balances onUsdTotal={setUsdTotal} />
+                <Activity onSummary={setActivitySummary} />
+                <Nfts onCount={setNftCount} />
+              </Fragment>
             </>
           ) : (
             <div className="space-y-6">
