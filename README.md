@@ -72,9 +72,14 @@ _Watch-only view of a real public address — no wallet connection needed to see
   (connected or watch-only), a Copy button with "Copied!" feedback and a
   QR code generated entirely client-side (the `qrcode` package — the
   address never goes to a third-party API just to render a QR).
-- **Quick links to external tools**: Jumper, LI.FI, and Uniswap, always
-  visible (no wallet or address needed) — pure `target="_blank"` navigation,
-  no swap logic lives in this app at all.
+- **Quick links to external tools, per chain.** `toolsByChain.ts` maps each
+  chain to its own short list of popular apps — Jumper and LI.FI (cross-chain
+  aggregators) on every chain, plus chain-native ones: Uniswap + Aerodrome
+  on Base, Nado + Tydro + Inkypump on Ink, Velodrome + Uniswap on Optimism,
+  GMX + Camelot + Uniswap on Arbitrum. Switching chains updates the list
+  immediately. Always visible (no wallet or address needed) — pure
+  `target="_blank"` navigation, no swap logic lives in this app at all.
+  Adding a tool or a chain is one more entry in that one config file.
 - **Add token to wallet**: one click adds a known ERC-20 (USDC/WETH) to your
   connected wallet's token list via EIP-747 `wallet_watchAsset` — display
   only, cannot move funds or need approval, shown only when the connected
@@ -136,7 +141,8 @@ src/
   net.ts           shared fetch helper: timeout + one quiet retry, typed TimeoutError/HttpError
   ui.tsx           shared Skeleton / ErrorState / EmptyState + useSlowLoading hook
   AddressActions.tsx  Copy-to-clipboard + client-side QR code for the viewed address
-  ExternalTools.tsx   quick links out to Jumper / LI.FI / Uniswap (nav only, no swap logic)
+  ExternalTools.tsx   quick links out, per selected chain (toolsByChain.ts config)
+  toolsByChain.ts      config: which external tools show on each chain
   Balances.tsx     balance section for the selected chain, chain switcher
   Activity.tsx     recent transactions table for the selected chain
   Nfts.tsx         NFT grid for the selected chain
