@@ -60,13 +60,16 @@ export default function App() {
           <div className="flex items-center gap-3">
             <img
               src="/images/otb-r1c.png"
-              alt="onthebitcoin logo"
+              alt="OnTheBitcoin logo"
               className="h-10 w-10 rounded-lg"
             />
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">
-                onthebitcoin
+              <h1 className="flex items-center gap-1.5 text-2xl font-bold tracking-tight">
+                OnTheBitcoin <span aria-hidden="true">🌈</span>
               </h1>
+              <p className="mt-0.5 text-sm font-medium text-purple-300">
+                Bitcoin is the answer.
+              </p>
               <p className="mt-1 text-sm text-neutral-400">
                 Multi-chain wallet dashboard — balances, activity &amp; NFTs
                 in one place.
@@ -149,7 +152,7 @@ export default function App() {
               <div className="overflow-hidden rounded-xl border border-neutral-800">
                 <img
                   src="/images/onthebitcoin-banner@2x.png"
-                  alt="onthebitcoin — Noise or signal? Markets, Crypto, AI, Tech, Macro"
+                  alt="OnTheBitcoin — Noise or signal? Markets, Crypto, AI, Tech, Macro"
                   className="aspect-[3/1] w-full object-cover"
                 />
               </div>
@@ -157,7 +160,7 @@ export default function App() {
                 <p className="text-neutral-300">
                   A free tool by{' '}
                   <span className="font-semibold text-neutral-100">
-                    onthebitcoin
+                    OnTheBitcoin
                   </span>{' '}
                   for tracking your own wallets.
                 </p>
@@ -173,11 +176,19 @@ export default function App() {
         </main>
 
         <footer className="mt-10 border-t border-neutral-800 pt-4 text-center text-xs text-neutral-500">
-          A product by <span className="text-neutral-300">onthebitcoin</span>.
-          Built with React, wagmi &amp; RainbowKit. Data from Blockscout
-          (Base, Ink, Optimism &amp; Arbitrum) and the OpenSea API.
-          Local-first — no backend, no data leaves your browser except direct
-          calls to those public APIs.
+          <p className="text-sm text-neutral-300">
+            A product by{' '}
+            <span className="font-semibold text-neutral-100">
+              OnTheBitcoin
+            </span>{' '}
+            · Bitcoin is the answer.
+          </p>
+          <p className="mt-1.5 text-neutral-600">
+            Built with React, wagmi &amp; RainbowKit. Data from Blockscout
+            (Base, Ink, Optimism &amp; Arbitrum) and the OpenSea API.
+            Local-first — no backend, no data leaves your browser except
+            direct calls to those public APIs.
+          </p>
         </footer>
       </div>
     </div>

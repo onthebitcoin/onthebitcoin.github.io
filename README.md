@@ -1,11 +1,14 @@
-# onthebitcoin — Multi-Chain Wallet Dashboard
+# OnTheBitcoin — Multi-Chain Wallet Dashboard
 
-A local-first, read-only wallet dashboard by **onthebitcoin**, tracking
-balances, activity, and NFTs across **Base**, **Ink (Inkonchain)**,
-**Optimism**, **Arbitrum**, and **OpenSea**. Built to demonstrate practical
-Web3 frontend work — wallet connect, multi-chain data, and third-party API
-integration — and used in daily personal workflow to monitor wallet holdings
-across several chains from one screen.
+> Bitcoin is the answer.
+
+A local-first, read-only wallet dashboard by **OnTheBitcoin**
+([@OnTheBitcoin](https://x.com/OnTheBitcoin) on X), tracking balances,
+activity, and NFTs across **Base**, **Ink (Inkonchain)**, **Optimism**,
+**Arbitrum**, and **OpenSea**. Built to demonstrate practical Web3 frontend
+work — wallet connect, multi-chain data, and third-party API integration —
+and used in daily personal workflow to monitor wallet holdings across
+several chains from one screen.
 
 ![tech](https://img.shields.io/badge/stack-React%20%2B%20TypeScript%20%2B%20Vite-blue)
 ![tech](https://img.shields.io/badge/web3-wagmi%20%2B%20viem%20%2B%20RainbowKit-purple)
@@ -13,7 +16,7 @@ across several chains from one screen.
 
 **Live demo:** [onthebitcoin.github.io](https://onthebitcoin.github.io/)
 
-> **For Upwork / client pitches:** "I built onthebitcoin, a read-only
+> **For Upwork / client pitches:** "I built OnTheBitcoin, a read-only
 > multi-chain wallet dashboard (React, TypeScript, wagmi/viem, RainbowKit)
 > that tracks balances, transaction history, NFTs, and portfolio USD value
 > across Base, Ink, Optimism, and Arbitrum — plus watch-only support for any
@@ -22,7 +25,7 @@ across several chains from one screen.
 
 ## Screenshot
 
-![onthebitcoin dashboard — balances, activity across Base, Ink, Optimism and Arbitrum](./docs/screenshot.png)
+![OnTheBitcoin dashboard — balances, activity across Base, Ink, Optimism and Arbitrum](./docs/screenshot.png)
 
 _Watch-only view of a real public address — no wallet connection needed to see this._
 
@@ -123,8 +126,8 @@ _Watch-only view of a real public address — no wallet connection needed to see
 ```
 public/
   favicon.ico, icons/           favicon + apple-touch-icon, generated from images/otb-r1c.png
-  images/otb-r1c.png            onthebitcoin logo (header + favicon source)
-  images/onthebitcoin-banner@2x.png   onthebitcoin brand banner (shown pre-connect)
+  images/otb-r1c.png            OnTheBitcoin logo (header + favicon source)
+  images/onthebitcoin-banner@2x.png   OnTheBitcoin brand banner (shown pre-connect)
 src/
   wagmi.ts         wagmi/RainbowKit config: chains, connectors, WalletConnect id
   blockscout.ts    Blockscout API v2 client (recent activity, 4 chains)
@@ -146,7 +149,7 @@ src/
   Balances.tsx     balance section for the selected chain, chain switcher
   Activity.tsx     recent transactions table for the selected chain
   Nfts.tsx         NFT grid for the selected chain
-  App.tsx          page layout, header/footer, onthebitcoin branding, wires sections together
+  App.tsx          page layout, header/footer, OnTheBitcoin branding, wires sections together
   main.tsx         React root, wagmi/query/RainbowKit/ViewingAddress/SelectedChain providers
 ```
 

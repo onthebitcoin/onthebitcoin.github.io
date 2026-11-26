@@ -10,7 +10,7 @@ const walletConnectProjectId =
   import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || 'YOUR_WALLETCONNECT_PROJECT_ID'
 
 export const wagmiConfig = getDefaultConfig({
-  appName: 'onthebitcoin',
+  appName: 'OnTheBitcoin',
   projectId: walletConnectProjectId,
   chains: [base, ink, optimism, arbitrum, mainnet],
   ssr: false,
