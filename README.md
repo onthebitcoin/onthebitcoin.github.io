@@ -71,10 +71,23 @@ _Watch-only view of a real public address — no wallet connection needed to see
 - **Export to CSV**: both the balances table and the activity table for
   the currently selected chain export with one click — handy for taxes,
   spreadsheets, or just backing up what you're tracking.
-- **Copy address + QR code**: next to whichever address you're viewing
-  (connected or watch-only), a Copy button with "Copied!" feedback and a
-  QR code generated entirely client-side (the `qrcode` package — the
+- **Balances with full token detail**: each ERC-20 shows its shortened
+  contract address, a Copy button, and a "View ↗" link straight to that
+  token's page on the chain's block explorer. The native token is clearly
+  labeled "Native token — no contract address" instead of silently having
+  no contract info.
+- **Copy address + large QR code**: next to whichever address you're
+  viewing (connected or watch-only), a Copy button with "Copied!" feedback
+  and a QR code — opens in a full-screen modal at a decent fixed size,
+  rendered dark-on-white (not tinted/transparent) for real camera-scan
+  contrast, generated entirely client-side (the `qrcode` package — the
   address never goes to a third-party API just to render a QR).
+- **Data clarity throughout**: every section states what it loaded and
+  where from — e.g. "Showing latest 20 transactions loaded from
+  Blockscout", "8 tokens with balance (showing top 20 by USD value)", "24
+  NFTs loaded — more available". A small "Data from Blockscout / CoinGecko
+  / OpenSea" note sits under each section header so the data's source is
+  never a guess.
 - **Quick links to external tools, per chain.** `toolsByChain.ts` maps each
   chain to its own short list of popular apps — Jumper and LI.FI (cross-chain
   aggregators) on every chain, plus chain-native ones: Uniswap + Aerodrome

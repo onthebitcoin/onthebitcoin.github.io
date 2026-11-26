@@ -93,7 +93,7 @@ export default function App() {
         <main className="mt-8 flex-1">
           {address ? (
             <>
-              <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 text-sm">
+              <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-5 text-sm shadow-sm">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-neutral-400">Viewing address</p>
                   <div className="flex items-center gap-2">

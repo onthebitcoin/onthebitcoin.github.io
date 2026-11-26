@@ -1,7 +1,7 @@
 // Tiny shared UI bits (skeleton loader, retry button, slow-loading hint)
 // used across the Balances / Activity / NFTs / Prices sections. Deliberately
 // minimal — no UI library.
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 
 export function Skeleton({ className = '' }: { className?: string }) {
   return (
@@ -36,6 +36,51 @@ export function ErrorState({
 
 export function EmptyState({ message }: { message: string }) {
   return <p className="py-6 text-center text-sm text-neutral-500">{message}</p>
+}
+
+/** "0x1234…abcd" — used for compact contract/address display everywhere. */
+export function shortAddress(address: string, lead = 6, trail = 4): string {
+  if (address.length <= lead + trail + 1) return address
+  return `${address.slice(0, lead)}…${address.slice(-trail)}`
+}
+
+/**
+ * Small inline "Copy" button with transient "Copied!" feedback — used for
+ * contract addresses, wallet addresses, anywhere a value needs a one-click
+ * copy without its own bespoke state.
+ */
+export function CopyButton({ value, label = 'Copy' }: { value: string; label?: string }) {
+  const [copied, setCopied] = useState(false)
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // Clipboard API can be blocked (permissions, insecure context) — not
+      // worth surfacing as an error for a convenience action.
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="rounded border border-neutral-700 px-1.5 py-0.5 text-[10px] leading-4 text-neutral-500 hover:border-purple-500 hover:text-purple-300"
+    >
+      {copied ? 'Copied!' : label}
+    </button>
+  )
+}
+
+/**
+ * Small, muted "where this data comes from" note — shown under a section
+ * header so the data's provenance is always visible without taking up
+ * much visual weight.
+ */
+export function DataSourceNote({ children }: { children: ReactNode }) {
+  return <p className="text-[11px] text-neutral-600">{children}</p>
 }
 
 /**

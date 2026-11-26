@@ -10,7 +10,7 @@ import { arbitrum, base, optimism } from 'viem/chains'
 import { fetchOpenSeaNfts, type OpenSeaNft } from './opensea'
 import { useViewingAddress } from './viewingAddress'
 import { useSelectedChain, SUPPORTED_CHAINS } from './selectedChain'
-import { Skeleton, ErrorState, EmptyState, useSlowLoading } from './ui'
+import { Skeleton, ErrorState, EmptyState, useSlowLoading, DataSourceNote } from './ui'
 
 type OpenSeaChainSlug = 'base' | 'optimism' | 'arbitrum'
 
@@ -178,6 +178,14 @@ function ChainNftGrid({
 
   return (
     <div>
+      {allNfts.length > 0 && !isLoading && (
+        <p className="mb-1 text-xs text-neutral-500">
+          {allNfts.length} NFT{allNfts.length === 1 ? '' : 's'} loaded
+          {nextCursor ? ' — more available, use "Load more" below' : ''}
+        </p>
+      )}
+      <DataSourceNote>NFTs from OpenSea</DataSourceNote>
+
       {isLoading && (
         <>
           <NftGridSkeleton />
@@ -202,7 +210,7 @@ function ChainNftGrid({
 
       {!isLoading && !isError && filtered.length > 0 && (
         <>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {filtered.map((nft) => (
               <NftCard key={`${nft.contract}-${nft.identifier}`} nft={nft} />
             ))}
@@ -252,7 +260,7 @@ export default function Nfts({
   if (!address) return null
 
   return (
-    <section className="mt-8">
+    <section className="mt-10">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold text-neutral-200">
           NFTs — {chainMeta.name}

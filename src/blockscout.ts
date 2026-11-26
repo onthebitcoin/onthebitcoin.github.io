@@ -117,3 +117,13 @@ export function explorerTxUrl(chainId: number, hash: string): string {
   const chainMeta = BLOCKSCOUT_CHAINS[chainId]
   return chainMeta ? `${chainMeta.explorerBase}/tx/${hash}` : '#'
 }
+
+export function explorerTokenUrl(chainId: number, tokenAddress: string): string {
+  const chainMeta = BLOCKSCOUT_CHAINS[chainId]
+  return chainMeta ? `${chainMeta.explorerBase}/token/${tokenAddress}` : '#'
+}
+
+export function explorerAddressUrl(chainId: number, address: string): string {
+  const chainMeta = BLOCKSCOUT_CHAINS[chainId]
+  return chainMeta ? `${chainMeta.explorerBase}/address/${address}` : '#'
+}

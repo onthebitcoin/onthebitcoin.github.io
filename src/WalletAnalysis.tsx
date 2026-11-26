@@ -4,6 +4,7 @@
 // itself, so it's just a read-only view over data the sections already
 // loaded.
 import { formatUsd } from './prices'
+import { DataSourceNote } from './ui'
 
 export interface AnalysisData {
   usdTotal: number | null
@@ -15,9 +16,9 @@ export interface AnalysisData {
 
 function StatTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2">
+    <div className="rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2.5 transition hover:border-neutral-700">
       <p className="text-xs text-neutral-500">{label}</p>
-      <p className="mt-0.5 font-mono text-sm text-neutral-100">{value}</p>
+      <p className="mt-0.5 font-mono text-base text-neutral-100">{value}</p>
     </div>
   )
 }
@@ -58,8 +59,8 @@ export default function WalletAnalysis({
       : '—'
 
   return (
-    <section className="mt-6 rounded-xl border border-neutral-800 bg-neutral-900 p-4">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+    <section className="mt-6 rounded-xl border border-neutral-800 bg-neutral-900 p-5 shadow-sm">
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold text-neutral-200">
           Wallet analysis — {chainName}
         </h2>
@@ -76,8 +77,12 @@ export default function WalletAnalysis({
           </div>
         )}
       </div>
+      <DataSourceNote>
+        Based on the {chainName} data loaded in the sections below — not
+        necessarily this wallet's complete history
+      </DataSourceNote>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <StatTile label="Est. value" value={formatUsd(data.usdTotal)} />
         <StatTile
           label="Transactions (loaded)"

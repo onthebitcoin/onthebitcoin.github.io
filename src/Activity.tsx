@@ -11,7 +11,7 @@ import { fetchRecentActivity, explorerTxUrl, type ActivityItem } from './blocksc
 import { useViewingAddress } from './viewingAddress'
 import { useSelectedChain, SUPPORTED_CHAINS } from './selectedChain'
 import { downloadCsv } from './csv'
-import { Skeleton, ErrorState, EmptyState, useSlowLoading } from './ui'
+import { Skeleton, ErrorState, EmptyState, useSlowLoading, DataSourceNote } from './ui'
 
 const PAGE_SIZE = 20
 
@@ -267,7 +267,7 @@ function ChainActivityTable({
   }
 
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+    <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-5 shadow-sm">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-semibold text-neutral-100">
           {chainMeta.name} — recent activity
@@ -295,12 +295,16 @@ function ChainActivityTable({
       </div>
 
       {allItems.length > 0 && (
-        <p className="mb-3 text-xs text-neutral-500">
-          {summary.total} loaded · {summary.sentCount} sent ·{' '}
+        <p className="mb-1 text-xs text-neutral-500">
+          Showing latest {summary.total} transaction{summary.total === 1 ? '' : 's'} loaded
+          from Blockscout — {summary.sentCount} sent ·{' '}
           {summary.receivedCount} received · ~{summary.volume.toFixed(4)}{' '}
           {chainMeta.nativeCurrency.symbol} volume
         </p>
       )}
+      <DataSourceNote>
+        Activity from Blockscout — not necessarily this wallet's entire history
+      </DataSourceNote>
 
       {isLoading && (
         <>
@@ -423,7 +427,7 @@ export default function Activity({
   if (!address) return null
 
   return (
-    <section className="mt-8">
+    <section className="mt-10">
       <h2 className="mb-3 text-lg font-semibold text-neutral-200">
         Recent activity
       </h2>
