@@ -43,9 +43,9 @@ function NftCard({ nft }: { nft: OpenSeaNft }) {
       href={nft.openseaUrl}
       target="_blank"
       rel="noreferrer"
-      className="group overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900 transition hover:border-purple-500/50"
+      className="group overflow-hidden rounded-xl border border-neutral-800 light:border-neutral-300 bg-neutral-900 light:bg-white transition hover:border-purple-500/50"
     >
-      <div className="relative aspect-square w-full bg-neutral-800">
+      <div className="relative aspect-square w-full bg-neutral-800 light:bg-neutral-200">
         {showImage ? (
           <>
             {!imageLoaded && (
@@ -69,7 +69,7 @@ function NftCard({ nft }: { nft: OpenSeaNft }) {
         )}
       </div>
       <div className="p-2.5">
-        <p className="truncate text-sm font-medium text-neutral-100">
+        <p className="truncate text-sm font-medium text-neutral-100 light:text-neutral-900">
           {nft.name ?? 'Untitled'}
         </p>
         <p className="truncate text-xs text-neutral-500">{nft.collection}</p>
@@ -82,7 +82,7 @@ function NftGridSkeleton() {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
       {[0, 1, 2, 3].map((i) => (
-        <div key={i} className="overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900">
+        <div key={i} className="overflow-hidden rounded-xl border border-neutral-800 light:border-neutral-300 bg-neutral-900 light:bg-white">
           <Skeleton className="aspect-square w-full rounded-none" />
           <div className="space-y-1.5 p-2.5">
             <Skeleton className="h-3 w-3/4" />
@@ -165,7 +165,7 @@ function ChainNftGrid({
 
   if (!OPENSEA_API_KEY) {
     return (
-      <div className="rounded-xl border border-dashed border-neutral-800 p-6 text-center text-sm text-neutral-500">
+      <div className="rounded-xl border border-dashed border-neutral-800 light:border-neutral-300 p-6 text-center text-sm text-neutral-500">
         Set VITE_OPENSEA_API_KEY in .env.local to load {label} NFTs. Get a
         free key at docs.opensea.io/reference/api-keys.
       </div>
@@ -222,7 +222,7 @@ function ChainNftGrid({
                 type="button"
                 disabled={isLoadingMore}
                 onClick={handleLoadMore}
-                className="rounded-lg border border-neutral-700 px-3 py-1.5 text-xs text-neutral-300 hover:border-purple-500 hover:text-purple-300 disabled:opacity-50"
+                className="rounded-lg border border-neutral-700 light:border-neutral-300 px-3 py-1.5 text-xs text-neutral-300 light:text-neutral-700 hover:border-purple-500 hover:text-purple-300 disabled:opacity-50"
               >
                 {isLoadingMore ? 'Loading more…' : 'Load more NFTs'}
               </button>
@@ -262,7 +262,7 @@ export default function Nfts({
   return (
     <section className="mt-10">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold text-neutral-200">
+        <h2 className="text-lg font-semibold text-neutral-200 light:text-neutral-800">
           NFTs — {chainMeta.name}
         </h2>
         {openSeaSlug && (
@@ -271,7 +271,7 @@ export default function Nfts({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name or collection…"
-            className="w-full max-w-xs rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-purple-500 focus:outline-none"
+            className="w-full max-w-xs rounded-lg border border-neutral-700 light:border-neutral-300 bg-neutral-900 light:bg-white px-3 py-1.5 text-sm text-neutral-100 light:text-neutral-900 placeholder:text-neutral-600 light:text-neutral-500 focus:border-purple-500 focus:outline-none"
           />
         )}
       </div>
@@ -285,7 +285,7 @@ export default function Nfts({
           onCount={onCount}
         />
       ) : (
-        <div className="rounded-xl border border-dashed border-neutral-800 p-6 text-center text-sm text-neutral-500">
+        <div className="rounded-xl border border-dashed border-neutral-800 light:border-neutral-300 p-6 text-center text-sm text-neutral-500">
           NFT lookup isn't available for {chainMeta.name} yet — no reliable
           public indexer for this chain. Switch to Base, Optimism, or
           Arbitrum to see NFTs.

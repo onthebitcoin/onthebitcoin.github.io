@@ -24,7 +24,7 @@ export default function ExternalTools() {
             target="_blank"
             rel="noreferrer"
             title={tool.description}
-            className="rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-300 transition hover:border-purple-500/50 hover:text-purple-300"
+            className="rounded-lg border border-neutral-800 light:border-neutral-300 bg-neutral-900 light:bg-white px-3 py-1.5 text-sm text-neutral-300 light:text-neutral-700 transition hover:border-purple-500/50 hover:text-purple-300"
           >
             {tool.label} ↗
           </a>

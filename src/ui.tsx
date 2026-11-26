@@ -6,7 +6,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 export function Skeleton({ className = '' }: { className?: string }) {
   return (
     <span
-      className={`inline-block animate-pulse rounded bg-neutral-800 ${className}`}
+      className={`inline-block animate-pulse rounded bg-neutral-800 light:bg-neutral-200 ${className}`}
     />
   )
 }
@@ -25,7 +25,7 @@ export function ErrorState({
         <button
           type="button"
           onClick={onRetry}
-          className="rounded-lg border border-neutral-700 px-3 py-1 text-xs text-neutral-300 hover:border-purple-500 hover:text-purple-300"
+          className="rounded-lg border border-neutral-700 light:border-neutral-300 px-3 py-1 text-xs text-neutral-300 light:text-neutral-700 hover:border-purple-500 hover:text-purple-300"
         >
           Retry
         </button>
@@ -67,7 +67,7 @@ export function CopyButton({ value, label = 'Copy' }: { value: string; label?: s
     <button
       type="button"
       onClick={handleCopy}
-      className="rounded border border-neutral-700 px-1.5 py-0.5 text-[10px] leading-4 text-neutral-500 hover:border-purple-500 hover:text-purple-300"
+      className="rounded border border-neutral-700 light:border-neutral-300 px-1.5 py-0.5 text-[10px] leading-4 text-neutral-500 hover:border-purple-500 hover:text-purple-300"
     >
       {copied ? 'Copied!' : label}
     </button>
@@ -80,7 +80,7 @@ export function CopyButton({ value, label = 'Copy' }: { value: string; label?: s
  * much visual weight.
  */
 export function DataSourceNote({ children }: { children: ReactNode }) {
-  return <p className="text-[11px] text-neutral-600">{children}</p>
+  return <p className="text-[11px] text-neutral-600 light:text-neutral-500">{children}</p>
 }
 
 /**

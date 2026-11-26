@@ -27,14 +27,14 @@ export default function WatchAddressButton() {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="rounded-xl border border-purple-500/60 bg-purple-500/10 px-4 py-2.5 text-sm font-medium text-purple-200 transition hover:bg-purple-500/20"
+        className="rounded-xl border border-purple-500/60 bg-purple-500/10 px-4 py-2.5 text-sm font-medium text-purple-200 light:text-purple-700 transition hover:bg-purple-500/20"
       >
         👁 Watch address
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-20 mt-2 w-72 rounded-xl border border-neutral-700 bg-neutral-900 p-3 shadow-xl">
-          <p className="mb-2 text-xs text-neutral-400">
+        <div className="absolute right-0 top-full z-20 mt-2 w-72 rounded-xl border border-neutral-700 light:border-neutral-300 bg-neutral-900 light:bg-white p-3 shadow-xl">
+          <p className="mb-2 text-xs text-neutral-400 light:text-neutral-600">
             Paste any 0x address to view it read-only — no wallet connection
             needed.
           </p>
@@ -44,7 +44,7 @@ export default function WatchAddressButton() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="0x... address to watch"
-              className="min-w-0 flex-1 rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-1.5 text-xs text-neutral-100 placeholder:text-neutral-600 focus:border-purple-500 focus:outline-none"
+              className="min-w-0 flex-1 rounded-lg border border-neutral-700 light:border-neutral-300 bg-neutral-950 light:bg-neutral-50 px-3 py-1.5 text-xs text-neutral-100 light:text-neutral-900 placeholder:text-neutral-600 light:text-neutral-500 focus:border-purple-500 focus:outline-none"
             />
             <button
               type="submit"
@@ -54,7 +54,7 @@ export default function WatchAddressButton() {
             </button>
           </form>
           {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
-          <p className="mt-2 text-xs text-neutral-600">
+          <p className="mt-2 text-xs text-neutral-600 light:text-neutral-500">
             Read-only, saved only in this browser — never connected, never
             asked to sign anything.
           </p>

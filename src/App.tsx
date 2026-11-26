@@ -18,6 +18,21 @@ import ChainTabs from './ChainTabs'
 import WalletAnalysis, { type AnalysisData } from './WalletAnalysis'
 import { useViewingAddress } from './viewingAddress'
 import { useSelectedChain, SUPPORTED_CHAINS } from './selectedChain'
+import { useTheme } from './theme'
+
+function ThemeToggle() {
+  const { theme, toggleTheme } = useTheme()
+  return (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+      className="rounded-lg border border-neutral-700 light:border-neutral-300 px-2.5 py-2 text-sm text-neutral-300 light:text-neutral-700 hover:border-purple-500 hover:text-purple-300"
+    >
+      {theme === 'dark' ? '☀️' : '🌙'}
+    </button>
+  )
+}
 
 export default function App() {
   const { chain } = useAccount()
@@ -54,9 +69,9 @@ export default function App() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-neutral-950 text-neutral-100">
+    <div className="flex min-h-screen flex-col bg-neutral-950 light:bg-neutral-50 text-neutral-100 light:text-neutral-900">
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-8">
-        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-neutral-800 pb-6">
+        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-neutral-800 light:border-neutral-300 pb-6">
           <div className="flex items-center gap-3">
             <img
               src="/images/otb-r1c.png"
@@ -70,7 +85,7 @@ export default function App() {
               <p className="mt-0.5 text-sm font-medium text-purple-300">
                 Bitcoin is the answer.
               </p>
-              <p className="mt-1 text-sm text-neutral-400">
+              <p className="mt-1 text-sm text-neutral-400 light:text-neutral-600">
                 Multi-chain wallet dashboard — balances, activity &amp; NFTs
                 in one place.
               </p>
@@ -79,6 +94,7 @@ export default function App() {
           <div className="flex flex-wrap items-center gap-2">
             <WatchAddressButton />
             <ConnectButton />
+            <ThemeToggle />
           </div>
         </header>
 
@@ -93,15 +109,15 @@ export default function App() {
         <main className="mt-8 flex-1">
           {address ? (
             <>
-              <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-5 text-sm shadow-sm">
+              <div className="rounded-xl border border-neutral-800 light:border-neutral-300 bg-neutral-900 light:bg-white p-5 text-sm shadow-sm">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-neutral-400">Viewing address</p>
+                  <p className="text-neutral-400 light:text-neutral-600">Viewing address</p>
                   <div className="flex items-center gap-2">
                     <span
                       className={`rounded-full px-2.5 py-0.5 text-xs ${
                         isConnectedWallet
                           ? 'bg-emerald-500/20 text-emerald-300'
-                          : 'bg-neutral-700/50 text-neutral-300'
+                          : 'bg-neutral-700/50 text-neutral-300 light:text-neutral-700'
                       }`}
                     >
                       {isConnectedWallet ? 'Connected' : 'Watch-only'}
@@ -109,13 +125,13 @@ export default function App() {
                     <AddressActions address={address} />
                   </div>
                 </div>
-                <p className="mt-1 break-all font-mono text-neutral-100">
+                <p className="mt-1 break-all font-mono text-neutral-100 light:text-neutral-900">
                   {address}
                 </p>
                 {isConnectedWallet && (
                   <>
-                    <p className="mt-3 text-neutral-400">Current chain</p>
-                    <p className="mt-1 text-neutral-100">
+                    <p className="mt-3 text-neutral-400 light:text-neutral-600">Current chain</p>
+                    <p className="mt-1 text-neutral-100 light:text-neutral-900">
                       {chain ? `${chain.name} (id ${chain.id})` : 'Unknown'}
                     </p>
                   </>
@@ -149,17 +165,17 @@ export default function App() {
             </>
           ) : (
             <div className="space-y-6">
-              <div className="overflow-hidden rounded-xl border border-neutral-800">
+              <div className="overflow-hidden rounded-xl border border-neutral-800 light:border-neutral-300">
                 <img
                   src="/images/onthebitcoin-banner@2x.png"
                   alt="OnTheBitcoin — Noise or signal? Markets, Crypto, AI, Tech, Macro"
                   className="aspect-[3/1] w-full object-cover"
                 />
               </div>
-              <div className="rounded-xl border border-dashed border-neutral-800 p-10 text-center text-neutral-400">
-                <p className="text-neutral-300">
+              <div className="rounded-xl border border-dashed border-neutral-800 light:border-neutral-300 p-10 text-center text-neutral-400 light:text-neutral-600">
+                <p className="text-neutral-300 light:text-neutral-700">
                   A free tool by{' '}
-                  <span className="font-semibold text-neutral-100">
+                  <span className="font-semibold text-neutral-100 light:text-neutral-900">
                     OnTheBitcoin
                   </span>{' '}
                   for tracking your own wallets.
@@ -175,15 +191,15 @@ export default function App() {
           )}
         </main>
 
-        <footer className="mt-10 border-t border-neutral-800 pt-4 text-center text-xs text-neutral-500">
-          <p className="text-sm text-neutral-300">
+        <footer className="mt-10 border-t border-neutral-800 light:border-neutral-300 pt-4 text-center text-xs text-neutral-500">
+          <p className="text-sm text-neutral-300 light:text-neutral-700">
             A product by{' '}
-            <span className="font-semibold text-neutral-100">
+            <span className="font-semibold text-neutral-100 light:text-neutral-900">
               OnTheBitcoin
             </span>{' '}
             · Bitcoin is the answer.
           </p>
-          <p className="mt-1.5 text-neutral-600">
+          <p className="mt-1.5 text-neutral-600 light:text-neutral-500">
             Built with React, wagmi &amp; RainbowKit. Data from Blockscout
             (Base, Ink, Optimism &amp; Arbitrum) and the OpenSea API.
             Local-first — no backend, no data leaves your browser except

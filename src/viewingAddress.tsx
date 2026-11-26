@@ -61,6 +61,23 @@ export function ViewingAddressProvider({ children }: { children: ReactNode }) {
     saveWallets(watchedWallets)
   }, [watchedWallets])
 
+  // Shareable watch-only links: opening the app with ?address=0x... adds
+  // that address to the watch list (if not already there) and selects it
+  // immediately — a one-click way to hand someone a read-only view of a
+  // specific address without them typing anything in.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const shared = params.get('address')
+    if (!shared || !isAddress(shared.trim())) return
+    const addr = shared.trim() as Address
+    setWatchedWallets((prev) => {
+      if (prev.some((w) => w.address.toLowerCase() === addr.toLowerCase())) return prev
+      return [...prev, { address: addr }]
+    })
+    setSelected(addr)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const address = selected ?? (isConnected ? connectedAddress : undefined)
   const isConnectedWallet = Boolean(
     selected === null && isConnected && address === connectedAddress,

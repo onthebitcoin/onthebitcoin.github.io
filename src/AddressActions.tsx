@@ -49,15 +49,15 @@ function QrModal({ address, onClose }: { address: string; onClose: () => void })
       onClick={onClose}
     >
       <div
-        className="w-full max-w-xs rounded-2xl border border-neutral-700 bg-neutral-900 p-5 text-center shadow-2xl"
+        className="w-full max-w-xs rounded-2xl border border-neutral-700 light:border-neutral-300 bg-neutral-900 light:bg-white p-5 text-center shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
-          <h4 className="text-sm font-semibold text-neutral-100">Scan to get address</h4>
+          <h4 className="text-sm font-semibold text-neutral-100 light:text-neutral-900">Scan to get address</h4>
           <button
             type="button"
             onClick={onClose}
-            className="rounded px-2 py-1 text-neutral-400 hover:text-neutral-100"
+            className="rounded px-2 py-1 text-neutral-400 light:text-neutral-600 hover:text-neutral-100 light:text-neutral-900"
             aria-label="Close"
           >
             ✕
@@ -83,7 +83,7 @@ function QrModal({ address, onClose }: { address: string; onClose: () => void })
           )}
         </div>
 
-        <p className="mt-4 break-all font-mono text-xs text-neutral-400">{address}</p>
+        <p className="mt-4 break-all font-mono text-xs text-neutral-400 light:text-neutral-600">{address}</p>
         <div className="mt-3 flex justify-center">
           <CopyButton value={address} label="Copy address" />
         </div>
@@ -94,6 +94,19 @@ function QrModal({ address, onClose }: { address: string; onClose: () => void })
 
 export default function AddressActions({ address }: { address: string }) {
   const [showQr, setShowQr] = useState(false)
+  const [shared, setShared] = useState(false)
+
+  async function handleShare() {
+    const url = new URL(window.location.href)
+    url.search = `?address=${address}`
+    try {
+      await navigator.clipboard.writeText(url.toString())
+      setShared(true)
+      setTimeout(() => setShared(false), 1500)
+    } catch {
+      // Clipboard API can be blocked — not worth surfacing as an error.
+    }
+  }
 
   return (
     <div className="flex items-center gap-1.5">
@@ -101,9 +114,17 @@ export default function AddressActions({ address }: { address: string }) {
       <button
         type="button"
         onClick={() => setShowQr(true)}
-        className="rounded border border-neutral-700 px-2 py-0.5 text-xs text-neutral-400 hover:border-purple-500 hover:text-purple-300"
+        className="rounded border border-neutral-700 light:border-neutral-300 px-2 py-0.5 text-xs text-neutral-400 light:text-neutral-600 hover:border-purple-500 hover:text-purple-300"
       >
         QR
+      </button>
+      <button
+        type="button"
+        onClick={handleShare}
+        title="Copy a watch-only link to this address"
+        className="rounded border border-neutral-700 light:border-neutral-300 px-2 py-0.5 text-xs text-neutral-400 light:text-neutral-600 hover:border-purple-500 hover:text-purple-300"
+      >
+        {shared ? 'Link copied!' : 'Share'}
       </button>
 
       {showQr && <QrModal address={address} onClose={() => setShowQr(false)} />}

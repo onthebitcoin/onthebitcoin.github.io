@@ -1,8 +1,18 @@
 @import "tailwindcss";
 @import "@rainbow-me/rainbowkit/styles.css";
 
+/* Dark is the default (unchanged) look. Adding a `light` class to <html>
+   (theme.tsx) activates the `light:` variant below so individual
+   components can layer light-mode overrides next to their existing dark
+   classes, e.g. `bg-neutral-900 light:bg-white`. */
+@custom-variant light (&:where(.light, .light *));
+
 :root {
   color-scheme: dark;
+}
+
+html.light {
+  color-scheme: light;
 }
 
 html,
@@ -14,4 +24,8 @@ body,
 body {
   margin: 0;
   background: #0b0d12;
+}
+
+html.light body {
+  background: #f7f7f8;
 }

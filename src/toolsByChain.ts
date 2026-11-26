@@ -54,7 +54,7 @@ export const CHAIN_TOOLS: Record<number, ExternalTool[]> = {
     },
     {
       label: 'Inkypump',
-      href: 'https://inkypump.com/ink',
+      href: 'https://inkypump.com',
       description: 'Token launchpad on Ink',
     },
   ],

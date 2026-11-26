@@ -16,9 +16,9 @@ export interface AnalysisData {
 
 function StatTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2.5 transition hover:border-neutral-700">
+    <div className="rounded-lg border border-neutral-800 light:border-neutral-300 bg-neutral-950 light:bg-neutral-50 px-3 py-2.5 transition hover:border-neutral-700 light:border-neutral-300">
       <p className="text-xs text-neutral-500">{label}</p>
-      <p className="mt-0.5 font-mono text-base text-neutral-100">{value}</p>
+      <p className="mt-0.5 font-mono text-base text-neutral-100 light:text-neutral-900">{value}</p>
     </div>
   )
 }
@@ -59,9 +59,9 @@ export default function WalletAnalysis({
       : '—'
 
   return (
-    <section className="mt-6 rounded-xl border border-neutral-800 bg-neutral-900 p-5 shadow-sm">
+    <section className="mt-6 rounded-xl border border-neutral-800 light:border-neutral-300 bg-neutral-900 light:bg-white p-5 shadow-sm">
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-neutral-200">
+        <h2 className="text-sm font-semibold text-neutral-200 light:text-neutral-800">
           Wallet analysis — {chainName}
         </h2>
         {tags.length > 0 && (

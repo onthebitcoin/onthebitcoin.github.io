@@ -57,11 +57,13 @@ _Watch-only view of a real public address — no wallet connection needed to see
 - **Recent activity**: last transactions on the selected chain — time,
   action (Sent/Received + decoded method name), value, and a link to the
   block explorer. A summary line (loaded count, sent/received split, rough
-  native-token volume) sits above the table, and clicking any row opens a
-  detail view (full hash, full timestamp, method, from/to, status). Loads
-  20 at a time with a "Load more" button, so a very active wallet never
-  freezes the page rendering hundreds of rows at once. Filter by
-  Sent/Received, export the full loaded list to CSV.
+  native-token volume, and how many landed in the last 24h) sits above the
+  table; rows from the last 24h get a small "24h" badge and a subtle
+  highlight so recent activity is easy to spot at a glance. Clicking any
+  row opens a detail view (full hash, full timestamp, method, from/to,
+  status). Loads 20 at a time with a "Load more" button, so a very active
+  wallet never freezes the page rendering hundreds of rows at once. Filter
+  by Sent/Received, export the full loaded list to CSV.
 - **NFTs**: image grid of the selected chain's NFTs (Base, Optimism, and
   Arbitrum via OpenSea; Ink shows a clear "not supported yet" message
   instead of a broken fetch, since there's no reliable public NFT indexer
@@ -75,13 +77,36 @@ _Watch-only view of a real public address — no wallet connection needed to see
   contract address, a Copy button, and a "View ↗" link straight to that
   token's page on the chain's block explorer. The native token is clearly
   labeled "Native token — no contract address" instead of silently having
-  no contract info.
+  no contract info. A search box filters the list live by name/symbol/
+  contract, and a "Hide < $1" toggle (persisted in localStorage) hides
+  dust so the list stays readable for wallets with many small balances —
+  both are display filters only, the underlying totals/CSV/chart are
+  always computed from the full list.
+- **Portfolio chart**: a small SVG donut chart (no charting library) shows
+  each priced token's share of the selected chain's total USD value, with
+  the smallest holdings bucketed into "Other" so the legend stays
+  readable. Only renders once there's at least one priced balance.
+- **Gas price**: a small badge next to "Export CSV" in Balances shows the
+  selected chain's current average gas price (gwei), from the same
+  Blockscout `/stats` endpoint already used elsewhere — quietly hidden if
+  unavailable rather than showing an error for something this minor.
 - **Copy address + large QR code**: next to whichever address you're
   viewing (connected or watch-only), a Copy button with "Copied!" feedback
   and a QR code — opens in a full-screen modal at a decent fixed size,
   rendered dark-on-white (not tinted/transparent) for real camera-scan
   contrast, generated entirely client-side (the `qrcode` package — the
   address never goes to a third-party API just to render a QR).
+- **Share a watch-only link**: a "Share" button next to Copy/QR copies a
+  link like `https://onthebitcoin.github.io/?address=0x...`. Opening that
+  link (by anyone, no wallet needed) adds the address to the watch list
+  and selects it immediately — a one-click way to hand someone a read-only
+  view of a specific address.
+- **Dark / light mode**: a toggle in the header (saved in localStorage)
+  switches the whole app, including RainbowKit's own connect modal.
+  Implemented as light-mode overrides layered on the original dark
+  classes (a custom Tailwind `light:` variant activated by a `.light`
+  class on `<html>`) rather than restructuring every component, so the
+  change was additive and low-risk against the existing dark design.
 - **Data clarity throughout**: every section states what it loaded and
   where from — e.g. "Showing latest 20 transactions loaded from
   Blockscout", "8 tokens with balance (showing top 20 by USD value)", "24
@@ -131,6 +156,7 @@ _Watch-only view of a real public address — no wallet connection needed to see
 | Token balances | Blockscout API v2 | full token list + Blockscout's own USD exchange rate per token, no API key |
 | NFTs | OpenSea API v2 | official NFT ownership data, free instant API key |
 | Portfolio value | CoinGecko public API | free, no API key, native ETH price only (tokens price via Blockscout above) |
+| Gas price | Blockscout API v2 `/stats` | same API family, no extra key/RPC needed |
 | Data fetching/caching | TanStack Query | loading/error states, caching, retry, built into wagmi |
 | QR codes | `qrcode` | tiny, generates client-side, no third-party API call |
 
@@ -145,9 +171,14 @@ src/
   wagmi.ts         wagmi/RainbowKit config: chains, connectors, WalletConnect id
   blockscout.ts    Blockscout API v2 client (recent activity, 4 chains)
   tokenBalances.ts     Blockscout token-balances client (full token list + USD rate per token)
+  gasPrice.ts      Blockscout /stats client for current gas price per chain
   opensea.ts       OpenSea API v2 client (NFTs by account)
   prices.ts        CoinGecko client for native ETH price
-  viewingAddress.tsx  multi-wallet state: connected wallet vs watched addresses (localStorage)
+  theme.tsx        dark/light mode: toggles a `.light` class on <html>, localStorage
+  PortfolioChart.tsx   small SVG donut chart of token USD value shares
+  toolsByChain.ts      config: which external tools show on each chain
+  viewingAddress.tsx  multi-wallet state: connected wallet vs watched addresses (localStorage),
+                       plus ?address= query param auto-watch for shareable links
   selectedChain.tsx    single-chain-at-a-time state (localStorage), SUPPORTED_CHAINS list
   WalletSwitcher.tsx   wallet-chip row: switch between connected/watched addresses
   WatchAddressButton.tsx  prominent "Watch address" button + add-address popover

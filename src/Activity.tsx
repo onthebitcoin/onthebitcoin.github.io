@@ -44,6 +44,15 @@ function formatFullTime(ts: string | null) {
   })
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000
+
+function isWithin24h(ts: string | null): boolean {
+  if (!ts) return false
+  const d = new Date(ts)
+  if (Number.isNaN(d.getTime())) return false
+  return Date.now() - d.getTime() < DAY_MS
+}
+
 function TableSkeleton() {
   return (
     <div className="space-y-2 py-1">
@@ -72,7 +81,7 @@ function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="grid grid-cols-3 gap-2 py-1.5 text-sm">
       <span className="text-neutral-500">{label}</span>
-      <span className="col-span-2 break-all font-mono text-neutral-100">{value}</span>
+      <span className="col-span-2 break-all font-mono text-neutral-100 light:text-neutral-900">{value}</span>
     </div>
   )
 }
@@ -104,17 +113,17 @@ function TxDetailModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-xl border border-neutral-700 bg-neutral-900 p-5"
+        className="w-full max-w-lg rounded-xl border border-neutral-700 light:border-neutral-300 bg-neutral-900 light:bg-white p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
-          <h4 className="font-semibold text-neutral-100">
+          <h4 className="font-semibold text-neutral-100 light:text-neutral-900">
             {chainName} transaction
           </h4>
           <button
             type="button"
             onClick={onClose}
-            className="rounded px-2 py-1 text-neutral-400 hover:text-neutral-100"
+            className="rounded px-2 py-1 text-neutral-400 light:text-neutral-600 hover:text-neutral-100 light:text-neutral-900"
             aria-label="Close"
           >
             ✕
@@ -146,7 +155,7 @@ function TxDetailModal({
           href={explorerTxUrl(chainId, tx.hash)}
           target="_blank"
           rel="noreferrer"
-          className="mt-4 inline-block rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-purple-300 hover:border-purple-500"
+          className="mt-4 inline-block rounded-lg border border-neutral-700 light:border-neutral-300 px-3 py-1.5 text-sm text-purple-300 hover:border-purple-500"
         >
           View on block explorer ↗
         </a>
@@ -226,11 +235,13 @@ function ChainActivityTable({
     const sent = allItems.filter((tx) => tx.isOutgoing)
     const received = allItems.filter((tx) => !tx.isOutgoing)
     const volumeWei = allItems.reduce((sum, tx) => sum + BigInt(tx.valueWei), 0n)
+    const recentCount = allItems.filter((tx) => isWithin24h(tx.timestamp)).length
     return {
       total: allItems.length,
       sentCount: sent.length,
       receivedCount: received.length,
       volume: Number(formatUnits(volumeWei, 18)),
+      recentCount,
     }
   }, [allItems])
 
@@ -267,9 +278,9 @@ function ChainActivityTable({
   }
 
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-5 shadow-sm">
+    <div className="rounded-xl border border-neutral-800 light:border-neutral-300 bg-neutral-900 light:bg-white p-5 shadow-sm">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-semibold text-neutral-100">
+        <h3 className="font-semibold text-neutral-100 light:text-neutral-900">
           {chainMeta.name} — recent activity
         </h3>
         {allItems.length > 0 && (
@@ -277,7 +288,7 @@ function ChainActivityTable({
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value as DirectionFilter)}
-              className="rounded-lg border border-neutral-700 bg-neutral-950 px-2 py-1 text-xs text-neutral-300 focus:border-purple-500 focus:outline-none"
+              className="rounded-lg border border-neutral-700 light:border-neutral-300 bg-neutral-950 light:bg-neutral-50 px-2 py-1 text-xs text-neutral-300 light:text-neutral-700 focus:border-purple-500 focus:outline-none"
             >
               <option value="all">All</option>
               <option value="sent">Sent</option>
@@ -286,7 +297,7 @@ function ChainActivityTable({
             <button
               type="button"
               onClick={handleExport}
-              className="rounded-lg border border-neutral-700 px-2 py-1 text-xs text-neutral-300 hover:border-purple-500 hover:text-purple-300"
+              className="rounded-lg border border-neutral-700 light:border-neutral-300 px-2 py-1 text-xs text-neutral-300 light:text-neutral-700 hover:border-purple-500 hover:text-purple-300"
             >
               Export CSV
             </button>
@@ -300,6 +311,15 @@ function ChainActivityTable({
           from Blockscout — {summary.sentCount} sent ·{' '}
           {summary.receivedCount} received · ~{summary.volume.toFixed(4)}{' '}
           {chainMeta.nativeCurrency.symbol} volume
+          {summary.recentCount > 0 && (
+            <>
+              {' '}
+              ·{' '}
+              <span className="text-purple-300">
+                {summary.recentCount} in the last 24h
+              </span>
+            </>
+          )}
         </p>
       )}
       <DataSourceNote>
@@ -344,14 +364,23 @@ function ChainActivityTable({
               </tr>
             </thead>
             <tbody>
-              {filtered.map((tx) => (
+              {filtered.map((tx) => {
+                const isRecent = isWithin24h(tx.timestamp)
+                return (
                 <tr
                   key={tx.hash}
                   onClick={() => setSelectedTx(tx)}
-                  className="cursor-pointer border-t border-neutral-800 hover:bg-neutral-800/50"
+                  className={`cursor-pointer border-t border-neutral-800 light:border-neutral-300 hover:bg-neutral-800/50 light:hover:bg-neutral-200/50 ${
+                    isRecent ? 'bg-purple-500/5' : ''
+                  }`}
                 >
-                  <td className="py-2 pr-3 text-neutral-400 whitespace-nowrap">
+                  <td className="py-2 pr-3 text-neutral-400 light:text-neutral-600 whitespace-nowrap">
                     {formatTime(tx.timestamp)}
+                    {isRecent && (
+                      <span className="ml-1.5 rounded-full bg-purple-500/20 px-1.5 py-0.5 text-[10px] text-purple-300">
+                        24h
+                      </span>
+                    )}
                   </td>
                   <td className="py-2 pr-3">
                     <span
@@ -361,11 +390,11 @@ function ChainActivityTable({
                     >
                       {tx.isOutgoing ? 'Sent' : 'Received'}
                     </span>
-                    <span className="ml-1.5 text-neutral-400">
+                    <span className="ml-1.5 text-neutral-400 light:text-neutral-600">
                       {tx.action}
                     </span>
                   </td>
-                  <td className="py-2 pr-3 font-mono text-neutral-100 whitespace-nowrap">
+                  <td className="py-2 pr-3 font-mono text-neutral-100 light:text-neutral-900 whitespace-nowrap">
                     {Number(formatUnits(BigInt(tx.valueWei), 18)).toFixed(5)}{' '}
                     {chainMeta.nativeCurrency.symbol}
                   </td>
@@ -381,17 +410,18 @@ function ChainActivityTable({
                     </a>
                   </td>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
           </table>
 
           {nextCursor && filter === 'all' && (
-            <div className="mt-3 flex flex-col items-center gap-1 border-t border-neutral-800 pt-3">
+            <div className="mt-3 flex flex-col items-center gap-1 border-t border-neutral-800 light:border-neutral-300 pt-3">
               <button
                 type="button"
                 disabled={isLoadingMore}
                 onClick={handleLoadMore}
-                className="rounded-lg border border-neutral-700 px-3 py-1.5 text-xs text-neutral-300 hover:border-purple-500 hover:text-purple-300 disabled:opacity-50"
+                className="rounded-lg border border-neutral-700 light:border-neutral-300 px-3 py-1.5 text-xs text-neutral-300 light:text-neutral-700 hover:border-purple-500 hover:text-purple-300 disabled:opacity-50"
               >
                 {isLoadingMore ? 'Loading more…' : `Load ${PAGE_SIZE} more`}
               </button>
@@ -428,7 +458,7 @@ export default function Activity({
 
   return (
     <section className="mt-10">
-      <h2 className="mb-3 text-lg font-semibold text-neutral-200">
+      <h2 className="mb-3 text-lg font-semibold text-neutral-200 light:text-neutral-800">
         Recent activity
       </h2>
       <ChainActivityTable chainId={chainId} address={address} onSummary={onSummary} />

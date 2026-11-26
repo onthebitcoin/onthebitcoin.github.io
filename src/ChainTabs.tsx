@@ -16,8 +16,8 @@ export default function ChainTabs() {
             onClick={() => setChainId(c.id)}
             className={`whitespace-nowrap rounded-lg border px-4 py-2 text-sm font-medium transition ${
               isActive
-                ? 'border-purple-500 bg-purple-500/15 text-purple-200'
-                : 'border-neutral-800 bg-neutral-900 text-neutral-400 hover:border-neutral-600 hover:text-neutral-200'
+                ? 'border-purple-500 bg-purple-500/15 text-purple-200 light:text-purple-700'
+                : 'border-neutral-800 light:border-neutral-300 bg-neutral-900 light:bg-white text-neutral-400 light:text-neutral-600 hover:border-neutral-600 hover:text-neutral-200 light:text-neutral-800'
             }`}
           >
             {c.name}

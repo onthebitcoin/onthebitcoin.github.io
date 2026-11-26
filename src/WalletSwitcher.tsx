@@ -31,8 +31,8 @@ export default function WalletSwitcher() {
           onClick={viewConnectedWallet}
           className={`rounded-lg border px-3 py-1.5 text-xs transition ${
             isConnectedWallet
-              ? 'border-purple-500/50 bg-purple-500/10 text-purple-200'
-              : 'border-neutral-700 text-neutral-300 hover:border-neutral-600'
+              ? 'border-purple-500/50 bg-purple-500/10 text-purple-200 light:text-purple-700'
+              : 'border-neutral-700 light:border-neutral-300 text-neutral-300 light:text-neutral-700 hover:border-neutral-600'
           }`}
         >
           🔗 Connected {connectedAddress ? `(${short(connectedAddress)})` : ''}
@@ -47,13 +47,13 @@ export default function WalletSwitcher() {
             className={`flex items-center gap-1 rounded-lg border px-1 py-0.5 text-xs transition ${
               isActive
                 ? 'border-purple-500/50 bg-purple-500/10'
-                : 'border-neutral-700'
+                : 'border-neutral-700 light:border-neutral-300'
             }`}
           >
             <button
               type="button"
               onClick={() => viewWallet(w.address)}
-              className={`px-2 py-1 ${isActive ? 'text-purple-200' : 'text-neutral-300 hover:text-neutral-100'}`}
+              className={`px-2 py-1 ${isActive ? 'text-purple-200 light:text-purple-700' : 'text-neutral-300 light:text-neutral-700 hover:text-neutral-100 light:text-neutral-900'}`}
             >
               👁 {w.label || short(w.address)}
             </button>
@@ -62,7 +62,7 @@ export default function WalletSwitcher() {
               onClick={() => removeWallet(w.address)}
               aria-label={`Stop watching ${w.address}`}
               title="Stop watching this address"
-              className="px-1.5 text-neutral-600 hover:text-red-400"
+              className="px-1.5 text-neutral-600 light:text-neutral-500 hover:text-red-400"
             >
               ×
             </button>
