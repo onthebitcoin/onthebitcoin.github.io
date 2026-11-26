@@ -64,12 +64,18 @@ _Watch-only view of a real public address — no wallet connection needed to see
   status). Loads 20 at a time with a "Load more" button, so a very active
   wallet never freezes the page rendering hundreds of rows at once. Filter
   by Sent/Received, export the full loaded list to CSV.
-- **NFTs**: image grid of the selected chain's NFTs (Base, Optimism, and
-  Arbitrum via OpenSea; Ink shows a clear "not supported yet" message
-  instead of a broken fetch, since there's no reliable public NFT indexer
-  for it), with a search box to filter by name/collection, and "Load more"
-  pagination (OpenSea's own cursor) for large collections — each card gets
-  its own image skeleton and a graceful fallback if an image fails to load.
+- **NFTs**: image grid of the selected chain's NFTs. Base/Optimism/
+  Arbitrum use OpenSea API v2. Ink has no OpenSea coverage, but — rather
+  than leaving a dead "not supported" message — it's backed by
+  Blockscout's own `/addresses/{address}/nft` endpoint on Ink's explorer,
+  which genuinely indexes NFT ownership there (verified live against a
+  real address before wiring it in); a visible "NFTs from Blockscout"
+  note explains the different source and sets expectations that
+  image/metadata quality can vary more (some collections store their
+  image as raw inline SVG or an IPFS link rather than a CDN URL — both
+  are handled, and an image that fails to load falls back to a clean "No
+  image" tile instead of a broken icon). All four chains share the same
+  search-by-name/collection box and "Load more" pagination UI.
 - **Export to CSV**: both the balances table and the activity table for
   the currently selected chain export with one click — handy for taxes,
   spreadsheets, or just backing up what you're tracking.
@@ -154,7 +160,7 @@ _Watch-only view of a real public address — no wallet connection needed to see
 | Chain interaction | wagmi v3 + viem | React hooks for balances, chain switching, contract reads |
 | Transaction history | Blockscout API v2 | public, no API key, same schema across Base, Ink, Optimism, Arbitrum |
 | Token balances | Blockscout API v2 | full token list + Blockscout's own USD exchange rate per token, no API key |
-| NFTs | OpenSea API v2 | official NFT ownership data, free instant API key |
+| NFTs | OpenSea API v2 (Base/Optimism/Arbitrum); Blockscout's own `/nft` endpoint (Ink) | OpenSea has no Ink coverage, so Ink falls back to the same Blockscout family used everywhere else |
 | Portfolio value | CoinGecko public API | free, no API key, native ETH price only (tokens price via Blockscout above) |
 | Gas price | Blockscout API v2 `/stats` | same API family, no extra key/RPC needed |
 | Data fetching/caching | TanStack Query | loading/error states, caching, retry, built into wagmi |
@@ -172,7 +178,9 @@ src/
   blockscout.ts    Blockscout API v2 client (recent activity, 4 chains)
   tokenBalances.ts     Blockscout token-balances client (full token list + USD rate per token)
   gasPrice.ts      Blockscout /stats client for current gas price per chain
-  opensea.ts       OpenSea API v2 client (NFTs by account)
+  opensea.ts       OpenSea API v2 client (NFTs by account, Base/Optimism/Arbitrum)
+  blockscoutNfts.ts    Blockscout NFT-ownership client — Ink's NFT data source (no OpenSea coverage there)
+  ErrorBoundary.tsx    catches render-time errors anywhere below it, shows a friendly fallback + reload button
   prices.ts        CoinGecko client for native ETH price
   theme.tsx        dark/light mode: toggles a `.light` class on <html>, localStorage
   PortfolioChart.tsx   small SVG donut chart of token USD value shares
@@ -212,6 +220,15 @@ Open the printed localhost URL (defaults to `http://localhost:5173`).
 npm run build
 npm run preview
 ```
+
+### Testing
+
+No automated suite yet (see `TESTING.md` for why) — `TESTING.md` has the
+full manual checklist to run through before pushing to `main`, plus the
+`npx lighthouse` command used for quality checks. Latest scores against
+production: **Performance 77, Accessibility 92, Best Practices 100,
+SEO 100** (the one remaining accessibility flag is inside RainbowKit's
+own `ConnectButton` markup, not this app's code).
 
 ## Deployment
 

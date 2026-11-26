@@ -13,7 +13,7 @@ export default function ExternalTools() {
 
   return (
     <section className="mt-6">
-      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-400">
         Tools on {chainMeta?.name ?? 'this chain'}
       </p>
       <div className="flex flex-wrap gap-2">

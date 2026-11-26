@@ -61,7 +61,7 @@ export default function WalletAnalysis({
   return (
     <section className="mt-6 rounded-xl border border-neutral-800 light:border-neutral-300 bg-neutral-900 light:bg-white p-5 shadow-sm">
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-neutral-200 light:text-neutral-800">
+        <h2 className="text-base font-bold tracking-tight text-neutral-200 light:text-neutral-800">
           Wallet analysis — {chainName}
         </h2>
         {tags.length > 0 && (
@@ -69,7 +69,7 @@ export default function WalletAnalysis({
             {tags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-full bg-purple-500/15 px-2.5 py-0.5 text-xs text-purple-300"
+                className="rounded-full bg-purple-500/15 px-2.5 py-0.5 text-xs text-purple-300 light:text-purple-700"
               >
                 {tag}
               </span>

@@ -155,7 +155,7 @@ function TxDetailModal({
           href={explorerTxUrl(chainId, tx.hash)}
           target="_blank"
           rel="noreferrer"
-          className="mt-4 inline-block rounded-lg border border-neutral-700 light:border-neutral-300 px-3 py-1.5 text-sm text-purple-300 hover:border-purple-500"
+          className="mt-4 inline-block rounded-lg border border-neutral-700 light:border-neutral-300 px-3 py-1.5 text-sm text-purple-300 light:text-purple-700 hover:border-purple-500"
         >
           View on block explorer ↗
         </a>
@@ -315,7 +315,7 @@ function ChainActivityTable({
             <>
               {' '}
               ·{' '}
-              <span className="text-purple-300">
+              <span className="text-purple-300 light:text-purple-700">
                 {summary.recentCount} in the last 24h
               </span>
             </>
@@ -377,7 +377,7 @@ function ChainActivityTable({
                   <td className="py-2 pr-3 text-neutral-400 light:text-neutral-600 whitespace-nowrap">
                     {formatTime(tx.timestamp)}
                     {isRecent && (
-                      <span className="ml-1.5 rounded-full bg-purple-500/20 px-1.5 py-0.5 text-[10px] text-purple-300">
+                      <span className="ml-1.5 rounded-full bg-purple-500/20 px-1.5 py-0.5 text-[10px] text-purple-300 light:text-purple-700">
                         24h
                       </span>
                     )}
@@ -404,7 +404,7 @@ function ChainActivityTable({
                       target="_blank"
                       rel="noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="font-mono text-purple-300 hover:underline"
+                      className="font-mono text-purple-300 light:text-purple-700 hover:underline"
                     >
                       {shortHash(tx.hash)}
                     </a>
@@ -458,7 +458,7 @@ export default function Activity({
 
   return (
     <section className="mt-10">
-      <h2 className="mb-3 text-lg font-semibold text-neutral-200 light:text-neutral-800">
+      <h2 className="mb-3 text-xl font-bold tracking-tight text-neutral-200 light:text-neutral-800">
         Recent activity
       </h2>
       <ChainActivityTable chainId={chainId} address={address} onSummary={onSummary} />

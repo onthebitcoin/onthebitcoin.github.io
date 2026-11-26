@@ -8,6 +8,7 @@ import { wagmiConfig } from './wagmi.ts'
 import { ViewingAddressProvider } from './viewingAddress.tsx'
 import { SelectedChainProvider } from './selectedChain.tsx'
 import { ThemeProvider, useTheme } from './theme.tsx'
+import { ErrorBoundary } from './ErrorBoundary.tsx'
 
 const queryClient = new QueryClient()
 
@@ -29,17 +30,19 @@ function ThemedRainbowKit({ children }: { children: React.ReactNode }) {
 // the second hangs forever, which looks like "stuck on Confirm connection"
 // even after you approve in the extension.
 createRoot(document.getElementById('root')!).render(
-  <WagmiProvider config={wagmiConfig}>
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <ThemedRainbowKit>
-          <ViewingAddressProvider>
-            <SelectedChainProvider>
-              <App />
-            </SelectedChainProvider>
-          </ViewingAddressProvider>
-        </ThemedRainbowKit>
-      </ThemeProvider>
-    </QueryClientProvider>
-  </WagmiProvider>,
+  <ErrorBoundary>
+    <WagmiProvider config={wagmiConfig}>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <ThemedRainbowKit>
+            <ViewingAddressProvider>
+              <SelectedChainProvider>
+                <App />
+              </SelectedChainProvider>
+            </ViewingAddressProvider>
+          </ThemedRainbowKit>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
+  </ErrorBoundary>,
 )

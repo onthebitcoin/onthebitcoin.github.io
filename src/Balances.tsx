@@ -276,7 +276,7 @@ export default function Balances({
     <section className="mt-10">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <h2 className="text-lg font-semibold text-neutral-200 light:text-neutral-800">
+          <h2 className="text-xl font-bold tracking-tight text-neutral-200 light:text-neutral-800">
             Balances — {chainMeta.name}
           </h2>
           <DataSourceNote>
@@ -319,7 +319,7 @@ export default function Balances({
           </div>
           {isConnectedWallet &&
             (isActive ? (
-              <span className="rounded-full bg-purple-500/20 px-2.5 py-1 text-xs text-purple-300">
+              <span className="rounded-full bg-purple-500/20 px-2.5 py-1 text-xs text-purple-300 light:text-purple-700">
                 Active
               </span>
             ) : (
