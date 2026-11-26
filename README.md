@@ -74,8 +74,14 @@ _Watch-only view of a real public address — no wallet connection needed to see
   image/metadata quality can vary more (some collections store their
   image as raw inline SVG or an IPFS link rather than a CDN URL — both
   are handled, and an image that fails to load falls back to a clean "No
-  image" tile instead of a broken icon). All four chains share the same
-  search-by-name/collection box and "Load more" pagination UI.
+  image" tile instead of a broken icon). Raw IPFS image references
+  (`ipfs://...` or any gateway's `/ipfs/<cid>` URL) resolve to several
+  known-reliable gateways and are tried in order — found via live testing
+  that a single public IPFS gateway can return HTTP 429 under the burst
+  of ~20-50 concurrent image requests a full grid makes, which is what
+  was actually causing some Ink NFTs to show no image. All four chains
+  share the same search-by-name/collection box and "Load more" pagination
+  UI.
 - **Export to CSV**: both the balances table and the activity table for
   the currently selected chain export with one click — handy for taxes,
   spreadsheets, or just backing up what you're tracking.
@@ -180,6 +186,7 @@ src/
   gasPrice.ts      Blockscout /stats client for current gas price per chain
   opensea.ts       OpenSea API v2 client (NFTs by account, Base/Optimism/Arbitrum)
   blockscoutNfts.ts    Blockscout NFT-ownership client — Ink's NFT data source (no OpenSea coverage there)
+  ipfs.ts          resolves ipfs:// / gateway image URLs into a multi-gateway fallback list (one public gateway can rate-limit under a full grid of images)
   ErrorBoundary.tsx    catches render-time errors anywhere below it, shows a friendly fallback + reload button
   prices.ts        CoinGecko client for native ETH price
   theme.tsx        dark/light mode: toggles a `.light` class on <html>, localStorage

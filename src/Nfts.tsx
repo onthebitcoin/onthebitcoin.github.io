@@ -11,6 +11,7 @@ import { useQuery } from '@tanstack/react-query'
 import { arbitrum, base, ink, optimism } from 'viem/chains'
 import { fetchOpenSeaNfts } from './opensea'
 import { fetchBlockscoutNfts } from './blockscoutNfts'
+import { resolveImageCandidates } from './ipfs'
 import { useViewingAddress } from './viewingAddress'
 import { useSelectedChain, SUPPORTED_CHAINS } from './selectedChain'
 import { Skeleton, ErrorState, EmptyState, useSlowLoading, DataSourceNote } from './ui'
@@ -28,13 +29,17 @@ const OPENSEA_SLUG_BY_CHAIN: Record<number, OpenSeaChainSlug | null> = {
 const OPENSEA_API_KEY = import.meta.env.VITE_OPENSEA_API_KEY || ''
 
 // Common shape both data sources (OpenSea, Blockscout) get mapped into so
-// NftCard/the grid don't need to know which one is in play.
+// NftCard/the grid don't need to know which one is in play. `imageCandidates`
+// is an ORDERED list — raw IPFS references resolve to several gateway URLs
+// (see ipfs.ts) since any single public gateway can rate-limit or go down
+// under a full grid's worth of concurrent image loads; NftCard tries each
+// in turn before giving up.
 interface DisplayNft {
   contract: string
   identifier: string
   name: string | null
   collection: string
-  imageUrl: string | null
+  imageCandidates: string[]
   viewUrl: string
   viewLabel: string
 }
@@ -48,9 +53,10 @@ function describeError(err: unknown): string {
 }
 
 function NftCard({ nft }: { nft: DisplayNft }) {
-  const [imageFailed, setImageFailed] = useState(false)
+  const [candidateIndex, setCandidateIndex] = useState(0)
   const [imageLoaded, setImageLoaded] = useState(false)
-  const showImage = nft.imageUrl && !imageFailed
+  const currentSrc = nft.imageCandidates[candidateIndex]
+  const exhausted = candidateIndex >= nft.imageCandidates.length
 
   return (
     <a
@@ -61,17 +67,21 @@ function NftCard({ nft }: { nft: DisplayNft }) {
       className="group overflow-hidden rounded-xl border border-neutral-800 light:border-neutral-300 bg-neutral-900 light:bg-white transition hover:border-purple-500/50 hover:shadow-md"
     >
       <div className="relative aspect-square w-full bg-neutral-800 light:bg-neutral-200">
-        {showImage ? (
+        {!exhausted ? (
           <>
             {!imageLoaded && (
               <Skeleton className="absolute inset-0 h-full w-full rounded-none" />
             )}
             <img
-              src={nft.imageUrl!}
+              key={currentSrc}
+              src={currentSrc}
               alt={nft.name ?? nft.collection}
               loading="lazy"
               onLoad={() => setImageLoaded(true)}
-              onError={() => setImageFailed(true)}
+              onError={() => {
+                setImageLoaded(false)
+                setCandidateIndex((i) => i + 1)
+              }}
               className={`h-full w-full object-cover transition group-hover:scale-105 ${
                 imageLoaded ? 'opacity-100' : 'opacity-0'
               }`}
@@ -259,7 +269,7 @@ function OpenSeaNftGrid({
         identifier: n.identifier,
         name: n.name,
         collection: n.collection,
-        imageUrl: n.imageUrl,
+        imageCandidates: resolveImageCandidates(n.imageUrl),
         viewUrl: n.openseaUrl,
         viewLabel: 'OpenSea',
       })),
@@ -286,7 +296,7 @@ function OpenSeaNftGrid({
           identifier: n.identifier,
           name: n.name,
           collection: n.collection,
-          imageUrl: n.imageUrl,
+          imageCandidates: resolveImageCandidates(n.imageUrl),
           viewUrl: n.openseaUrl,
           viewLabel: 'OpenSea',
         })),
@@ -368,7 +378,7 @@ function BlockscoutNftGrid({
         identifier: n.identifier,
         name: n.name,
         collection: n.collection,
-        imageUrl: n.imageUrl,
+        imageCandidates: resolveImageCandidates(n.imageUrl),
         viewUrl: n.explorerUrl,
         viewLabel: 'block explorer',
       })),
@@ -395,7 +405,7 @@ function BlockscoutNftGrid({
           identifier: n.identifier,
           name: n.name,
           collection: n.collection,
-          imageUrl: n.imageUrl,
+          imageCandidates: resolveImageCandidates(n.imageUrl),
           viewUrl: n.explorerUrl,
           viewLabel: 'block explorer',
         })),
