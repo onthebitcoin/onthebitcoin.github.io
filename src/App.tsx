@@ -200,10 +200,26 @@ export default function App() {
             · Bitcoin is the answer.
           </p>
           <p className="mt-1.5 text-neutral-400 light:text-neutral-500">
-            Built with React, wagmi &amp; RainbowKit. Data from Blockscout
-            (Base, Ink, Optimism &amp; Arbitrum) and the OpenSea API.
-            Local-first — no backend, no data leaves your browser except
-            direct calls to those public APIs.
+            🔒 Read-only — we never ask for your private key or seed phrase.
+          </p>
+          <p className="mt-2 flex items-center justify-center gap-3">
+            <a
+              href="https://x.com/OnTheBitcoin"
+              target="_blank"
+              rel="noreferrer"
+              className="text-neutral-400 light:text-neutral-500 hover:text-purple-300 light:hover:text-purple-700"
+            >
+              X / Twitter ↗
+            </a>
+            <span className="text-neutral-700 light:text-neutral-300">·</span>
+            <a
+              href="https://github.com/onthebitcoin/onthebitcoin.github.io"
+              target="_blank"
+              rel="noreferrer"
+              className="text-neutral-400 light:text-neutral-500 hover:text-purple-300 light:hover:text-purple-700"
+            >
+              Source on GitHub ↗
+            </a>
           </p>
         </footer>
       </div>

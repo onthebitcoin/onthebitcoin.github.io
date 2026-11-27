@@ -163,7 +163,7 @@ _Watch-only view of a real public address — no wallet connection needed to see
 | UI | React 19 + TypeScript | type-safe, component-based |
 | Styling | Tailwind CSS v4 | utility-first, no separate config file needed |
 | Wallet connect | RainbowKit | polished connect UI out of the box |
-| Chain interaction | wagmi v3 + viem | React hooks for balances, chain switching, contract reads |
+| Chain interaction | wagmi v2 + viem | React hooks for balances, chain switching, contract reads — pinned to v2 since RainbowKit 2.x's published peer dependency is `wagmi: ^2.9.0` (there's no RainbowKit release compatible with wagmi v3 yet) |
 | Transaction history | Blockscout API v2 | public, no API key, same schema across Base, Ink, Optimism, Arbitrum |
 | Token balances | Blockscout API v2 | full token list + Blockscout's own USD exchange rate per token, no API key |
 | NFTs | OpenSea API v2 (Base/Optimism/Arbitrum); Blockscout's own `/nft` endpoint (Ink) | OpenSea has no Ink coverage, so Ink falls back to the same Blockscout family used everywhere else |
